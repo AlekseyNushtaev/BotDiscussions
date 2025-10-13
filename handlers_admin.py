@@ -669,12 +669,10 @@ async def event_detail(callback: CallbackQuery):
         date_str = event.event_date.strftime("%d.%m.%Y")
 
         # Формируем текст сообщения
-        text = f"<b>{event.title}</b>\n"
-        text += f"<i>Дата проведения: {date_str}</i>\n\n"
+        text = f"<i>Название:</i> <b>{event.title}</b>\n"
+        text += f"<i>Дата проведения:</i> {date_str}\n\n"
         text += f"{event.description}"
-
-        if event.video_url:
-            text += f"\n\n<b>Видео:</b> {event.video_url}"
+        text += f"\n\n<i>Ссылка на видео:</i> {event.video_url if event.video_url else 'запись появится позже'}"
 
     # Создаем клавиатуру
     keyboard = InlineKeyboardMarkup(
