@@ -1,13 +1,16 @@
 import asyncio
+import datetime
 import logging
 
 from aiogram import Dispatcher
 
 import handlers_admin
+import handlers_admin_send
 from bot import bot
 from db.models import create_tables
 from typing import NoReturn
 import handlers_user
+from posting import scheduler
 
 logger: logging.Logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -50,7 +53,11 @@ async def main() -> None:
         # Регистрация роутеров
         dp.include_router(handlers_user.router)
         dp.include_router(handlers_admin.router)
+        dp.include_router(handlers_admin_send.router)
         logger.info("Роутеры успешно зарегистрированы")
+        current_hour = datetime.datetime.now().hour
+        loop = asyncio.get_event_loop()
+        loop.create_task(scheduler(current_hour - 1))
 
         # Удаление вебхука для очистки ожидающих обновлений
         await bot.delete_webhook(drop_pending_updates=True)

@@ -1,12 +1,17 @@
 import datetime
+import math
+from sqlalchemy import select, desc
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatMemberUpdated
 
+from db.models import Event
+from config import STRINGS_PER_PAGE
 from aiogram import Router, F
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from aiogram.filters import Command
+from aiogram.filters import Command, ChatMemberUpdatedFilter, KICKED, MEMBER
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from db.models import Session, Question, User
+from db.models import Session, Question, User, Event, Review
 from bot import bot
 from config import ADMIN_IDS
 from keyboard import get_main_keyboard
@@ -18,26 +23,36 @@ class QuestionState(StatesGroup):
     waiting_for_question = State()
 
 
-@router.message(Command("start"), ~F.from_user.id.in_(ADMIN_IDS))
-async def cmd_start(message: Message):
+class ReviewState(StatesGroup):
+    waiting_for_review = State()
+
+
+async def add_user(user_id, username, first_name, last_name):
     async with Session() as session:
         # Проверяем существование пользователя
-        user_query = select(User).where(User.user_id == message.from_user.id)
+        user_query = select(User).where(User.user_id == user_id)
         result = await session.execute(user_query)
         user = result.scalar_one_or_none()
 
         if not user:
-
             user = User(
-                user_id=message.from_user.id,
-                username=message.from_user.username,
-                first_name=message.from_user.first_name,
-                last_name=message.from_user.last_name,
+                user_id=user_id,
+                username=username,
+                first_name=first_name,
+                last_name=last_name,
                 user_is_block=False
             )
             session.add(user)
 
         await session.commit()
+
+
+@router.message(Command("start"), ~F.from_user.id.in_(ADMIN_IDS))
+async def cmd_start(message: Message):
+    await add_user(message.from_user.id,
+                   message.from_user.username,
+                   message.from_user.first_name,
+                   message.from_user.last_name)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Задать вопрос", callback_data="ask_question")],
@@ -53,6 +68,10 @@ async def cmd_start(message: Message):
 
 @router.message(F.text == "📊 Главное меню", ~F.from_user.id.in_(ADMIN_IDS))
 async def main_menu(message: Message):
+    await add_user(message.from_user.id,
+                   message.from_user.username,
+                   message.from_user.first_name,
+                   message.from_user.last_name)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Задать вопрос", callback_data="ask_question")],
@@ -68,7 +87,11 @@ async def main_menu(message: Message):
 
 @router.callback_query(F.data == "ask_question")
 async def ask_question(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text("Задайте пжл свой вопрос")
+    await add_user(callback.from_user.id,
+                   callback.from_user.username,
+                   callback.from_user.first_name,
+                   callback.from_user.last_name)
+    await callback.message.edit_text("Задайте, пожалуйста, свой вопрос.")
     await state.set_state(QuestionState.waiting_for_question)
     await callback.answer()
 
@@ -94,7 +117,8 @@ async def receive_question(message: Message, state: FSMContext):
             # Пересылаем оригинальное сообщение
             await bot.send_message(
                 admin_id,
-                f"Вопрос от пользователя {message.from_user.full_name} (@{message.from_user.username} ID{message.from_user.id})", reply_markup=get_main_keyboard())
+                f"Вопрос от пользователя {message.from_user.full_name} (@{message.from_user.username} ID{message.from_user.id})",
+                reply_markup=get_main_keyboard())
             await message.forward(admin_id)
 
         except Exception as e:
@@ -105,24 +129,22 @@ async def receive_question(message: Message, state: FSMContext):
     await cmd_start(message)
 
 
-import math
-from sqlalchemy import select, desc
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-# Добавьте эти импорты в начало файла, если их нет
-from db.models import Event
-from config import STRINGS_PER_PAGE
-
-# Добавьте этот обработчик после существующих обработчиков в handlers_user.py
-
 @router.callback_query(F.data == "events_calendar")
 async def show_user_events(callback: CallbackQuery):
     """Показ списка мероприятий для пользователя"""
+    await add_user(callback.from_user.id,
+                   callback.from_user.username,
+                   callback.from_user.first_name,
+                   callback.from_user.last_name)
     await _show_user_events_page(callback, page=1)
 
 
 @router.callback_query(F.data.startswith("user_events_page:"))
 async def view_user_events_page(callback: CallbackQuery):
+    await add_user(callback.from_user.id,
+                   callback.from_user.username,
+                   callback.from_user.first_name,
+                   callback.from_user.last_name)
     """Просмотр страницы с мероприятиями для пользователя"""
     page = int(callback.data.split(":")[1])
     await _show_user_events_page(callback, page)
@@ -196,6 +218,10 @@ async def _show_user_events_page(callback: CallbackQuery, page: int):
 @router.callback_query(F.data.startswith("user_event_detail:"))
 async def user_event_detail(callback: CallbackQuery):
     """Детальный просмотр мероприятия для пользователя"""
+    await add_user(callback.from_user.id,
+                   callback.from_user.username,
+                   callback.from_user.first_name,
+                   callback.from_user.last_name)
     event_id = int(callback.data.split(":")[1])
 
     async with Session() as session:
@@ -216,38 +242,116 @@ async def user_event_detail(callback: CallbackQuery):
         text += f"{event.description}"
         text += f"\n\n<i>Ссылка на видео:</i> {event.video_url if event.video_url else 'запись появится позже'}"
 
-
     # Создаем клавиатуру для пользователя
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="💬 Оставить отзыв", callback_data="review_stub")
-            ],
-            [
-                InlineKeyboardButton(text="⬅️ Назад", callback_data="user_events_back")
-            ]
-        ]
-    )
+    keyboard_buttons = []
+
+    # Проверяем, можно ли оставить отзыв (дата мероприятия <= текущей даты)
+    if event.event_date.date() <= datetime.datetime.now().date():
+        keyboard_buttons.append([
+            InlineKeyboardButton(text="💬 Оставить отзыв", callback_data=f"leave_review:{event_id}")
+        ])
+
+    keyboard_buttons.append([
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="user_events_back")
+    ])
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
     await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
     await callback.answer()
 
 
-@router.callback_query(F.data == "review_stub")
-async def review_stub(callback: CallbackQuery):
-    """Заглушка для отзывов от пользователя"""
-    await callback.answer("Функционал отзывов в разработке", show_alert=True)
+@router.callback_query(F.data.startswith("leave_review:"))
+async def start_review(callback: CallbackQuery, state: FSMContext):
+    """Начало процесса оставления отзыва"""
+    await add_user(callback.from_user.id,
+                   callback.from_user.username,
+                   callback.from_user.first_name,
+                   callback.from_user.last_name)
+    event_id = int(callback.data.split(":")[1])
+
+    # Сохраняем ID мероприятия в состоянии
+    await state.set_state(ReviewState.waiting_for_review)
+    await state.update_data(event_id=event_id)
+
+    await callback.message.edit_text("Напишите свой отзыв:")
+    await callback.answer()
+
+
+@router.message(ReviewState.waiting_for_review)
+async def process_review(message: Message, state: FSMContext):
+    """Обработка отзыва от пользователя"""
+    data = await state.get_data()
+    event_id = data['event_id']
+
+    async with Session() as session:
+        # Получаем информацию о мероприятии
+        event_query = select(Event).where(Event.id == event_id)
+        result = await session.execute(event_query)
+        event = result.scalar_one_or_none()
+
+        # Получаем информацию о пользователе
+        user_query = select(User).where(User.user_id == message.from_user.id)
+        user_result = await session.execute(user_query)
+        user = user_result.scalar_one_or_none()
+
+        if event and user:
+            # Сохраняем отзыв в базу данных
+            review = Review(
+                user_id=message.from_user.id,
+                event_id=event_id,
+                text=message.text,
+                created_at=datetime.datetime.now()
+            )
+            session.add(review)
+            await session.commit()
+
+            # Формируем информацию о пользователе
+            user_info = user.username if user.username else f"ID{user.user_id}"
+
+            # Отправляем уведомление администраторам
+            for admin_id in ADMIN_IDS:
+                try:
+                    # Отправляем информацию об отзыве
+                    await bot.send_message(
+                        admin_id,
+                        f"Пользователь {user_info} написал отзыв по мероприятию:\n"
+                        f"Название: {event.title}\n"
+                        f"Дата проведения: {event.event_date.strftime('%d.%m.%Y')}"
+                    )
+
+                    # Пересылаем сообщение с отзывом
+                    await message.forward(admin_id)
+
+                except Exception as e:
+                    print(f"Ошибка при отправке отзыва администратору {admin_id}: {e}")
+
+            # Благодарим пользователя и возвращаем в главное меню
+            await message.answer("Спасибо за ваш отзыв!")
+            await cmd_start(message)
+        else:
+            await message.answer("Ошибка при сохранении отзыва. Попробуйте позже.")
+
+    await state.clear()
 
 
 @router.callback_query(F.data == "user_events_back")
 async def user_events_back(callback: CallbackQuery):
     """Возврат к списку мероприятий для пользователя"""
+    await add_user(callback.from_user.id,
+                   callback.from_user.username,
+                   callback.from_user.first_name,
+                   callback.from_user.last_name)
     await _show_user_events_page(callback, page=1)
 
 
 @router.callback_query(F.data == "user_main_menu")
 async def user_main_menu(callback: CallbackQuery):
     """Возврат в главное меню пользователя"""
+    await add_user(callback.from_user.id,
+                   callback.from_user.username,
+                   callback.from_user.first_name,
+                   callback.from_user.last_name)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Задать вопрос", callback_data="ask_question")],
@@ -260,3 +364,35 @@ async def user_main_menu(callback: CallbackQuery):
         reply_markup=keyboard
     )
     await callback.answer()
+
+
+@router.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=KICKED))
+async def user_blocked_bot(event: ChatMemberUpdated):
+    await add_user(event.from_user.id,
+                   event.from_user.username,
+                   event.from_user.first_name,
+                   event.from_user.last_name)
+    async with Session() as session:
+        stmt = select(User).where(User.user_id == event.from_user.id)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if user:
+            user.user_is_block = True
+            await session.commit()
+
+
+@router.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=MEMBER))
+async def user_unblocked_bot(event: ChatMemberUpdated):
+    await add_user(event.from_user.id,
+                   event.from_user.username,
+                   event.from_user.first_name,
+                   event.from_user.last_name)
+    async with Session() as session:
+        stmt = select(User).where(User.user_id == event.from_user.id)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if user:
+            user.user_is_block = False
+            await session.commit()

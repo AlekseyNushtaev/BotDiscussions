@@ -1,10 +1,12 @@
 import math
+
 from aiogram import Router, F
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.filters import Command
 from sqlalchemy import select, desc
 
-from db.models import Session, User, Question, Event
+from bot import bot
+from db.models import Session, User, Question, Event, Review
 from config import ADMIN_IDS, STRINGS_PER_PAGE
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -34,13 +36,34 @@ class EditEventState(StatesGroup):
     waiting_for_new_video = State()
 
 
+async def get_all_users_unblock() -> list:
+    """
+    Возвращает множество ID пользователей с активными подписками.
+
+    Включает только пользователей, которые не заблокировали бота
+    (хотя бы одна подписка активна).
+
+    Возвращает:
+        Set[int]: Множество уникальных user_id
+    """
+    async with Session() as db:
+        result = await db.execute(
+            select(User.user_id).where(
+                User.user_is_block == False
+            )
+        )
+        # Преобразование результата в множество уникальных ID
+    return [user for user in result.scalars()]
+
+
 @router.message(Command("start"), F.from_user.id.in_(ADMIN_IDS))
 async def cmd_start_admin(message: Message):
     """Обработчик команды /start для администратора"""
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Вопросы", callback_data="admin_questions")],
-            [InlineKeyboardButton(text="Мероприятия", callback_data="admin_events")]
+            [InlineKeyboardButton(text="Мероприятия", callback_data="admin_events")],
+            [InlineKeyboardButton(text="Рассылка", callback_data="send")],
         ]
     )
 
@@ -56,7 +79,8 @@ async def main_menu_admin(message: Message):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Вопросы", callback_data="admin_questions")],
-            [InlineKeyboardButton(text="Мероприятия", callback_data="admin_events")]
+            [InlineKeyboardButton(text="Мероприятия", callback_data="admin_events")],
+            [InlineKeyboardButton(text="Рассылка", callback_data="send")],
         ]
     )
 
@@ -72,7 +96,8 @@ async def admin_main_menu(callback: CallbackQuery):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Вопросы", callback_data="admin_questions")],
-            [InlineKeyboardButton(text="Мероприятия", callback_data="admin_events")]
+            [InlineKeyboardButton(text="Мероприятия", callback_data="admin_events")],
+            [InlineKeyboardButton(text="Рассылка", callback_data="send")]
         ]
     )
 
@@ -555,8 +580,32 @@ async def process_event_final(message: Message, state: FSMContext, video_url: st
         )
         session.add(event)
         await session.commit()
+        event_id = event.id
 
     await message.answer("Мероприятие успешно создано!")
+    if video_url:
+        users = await get_all_users_unblock()
+        print(users)
+        count = 0
+        date_str = event.event_date.strftime("%d.%m.%Y")
+        text = f"<i>Название:</i> <b>{data['title']}</b>\n"
+        text += f"<i>Дата проведения:</i> {date_str}\n\n"
+        text += f"{data['description']}"
+        text += f"\n\n<i>Ссылка на видео:</i> {video_url}\n\n"
+        text += 'Как вам сегодняшний выпуск? Оставьте отзыв 👇'
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Оставить отзыв", callback_data=f"leave_review:{event_id}")]
+            ]
+        )
+        for user_id in users:
+            try:
+                await bot.send_message(user_id, text, reply_markup=keyboard, parse_mode="HTML")
+                count += 1
+            except:
+                pass
+        await message.answer(f"Выполнено уведомление о новом выпуске {count} юзерам")
+
 
     # Возвращаем в меню мероприятий
     keyboard = InlineKeyboardMarkup(
@@ -682,7 +731,7 @@ async def event_detail(callback: CallbackQuery):
                 InlineKeyboardButton(text="✏️ Редактировать", callback_data=f"edit_event:{event_id}")
             ],
             [
-                InlineKeyboardButton(text="📝 Отзывы", callback_data="reviews_stub")
+                InlineKeyboardButton(text="📝 Отзывы", callback_data=f"reviews_list:{event_id}")
             ],
             [
                 InlineKeyboardButton(text="⬅️ Назад", callback_data="events_list")
@@ -701,18 +750,20 @@ async def delete_event(callback: CallbackQuery):
     event_id = int(callback.data.split(":")[1])
 
     async with Session() as session:
+        # Получаем мероприятие вместе с отзывами
         event_query = select(Event).where(Event.id == event_id)
         result = await session.execute(event_query)
         event = result.scalar_one_or_none()
 
         if event:
+            # Удаляем мероприятие (отзывы удалятся каскадно благодаря настройкам в моделях)
             await session.delete(event)
             await session.commit()
             await callback.answer("Мероприятие удалено")
         else:
             await callback.answer("Мероприятие не найдено")
 
-    # Отправляем новое сообщение со списком мероприятий вместо редактирования
+    # Отправляем новое сообщение со списком мероприятий
     await callback.message.answer("Мероприятие удалено. Возвращаемся к списку мероприятий:")
     await _show_events_page_internal(callback.message, page=1)
 
@@ -873,6 +924,35 @@ async def process_new_date(message: Message, state: FSMContext):
 async def process_new_video(message: Message, state: FSMContext):
     """Обработка новой ссылки на видео"""
     await update_event_field(message, state, "video_url", message.text)
+    data = await state.get_data()
+    event_id = data['event_id']
+
+    async with Session() as session:
+        event_query = select(Event).where(Event.id == event_id)
+        result = await session.execute(event_query)
+        event = result.scalar_one_or_none()
+    if event:
+        users = await get_all_users_unblock()
+        print(users)
+        count = 0
+        date_str = event.event_date.strftime("%d.%m.%Y")
+        text = f"<i>Название:</i> <b>{event.title}</b>\n"
+        text += f"<i>Дата проведения:</i> {date_str}\n\n"
+        text += f"{event.description}"
+        text += f"\n\n<i>Ссылка на видео:</i> {event.video_url}\n\n"
+        text += 'Как вам сегодняшний выпуск? Оставьте отзыв 👇'
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Оставить отзыв", callback_data=f"leave_review:{event_id}")]
+            ]
+        )
+        for user_id in users:
+            try:
+                await bot.send_message(user_id, text, reply_markup=keyboard, parse_mode="HTML")
+                count += 1
+            except:
+                pass
+        await message.answer(f"Выполнено уведомление о новом выпуске {count} юзерам")
 
 
 @router.callback_query(F.data == "remove_video", EditEventState.waiting_for_new_video)
@@ -947,7 +1027,7 @@ async def send_event_detail(message: Message, event_id: int):
                 InlineKeyboardButton(text="✏️ Редактировать", callback_data=f"edit_event:{event_id}")
             ],
             [
-                InlineKeyboardButton(text="📝 Отзывы", callback_data="reviews_stub")
+                InlineKeyboardButton(text="📝 Отзывы", callback_data=f"reviews_list:{event_id}")
             ],
             [
                 InlineKeyboardButton(text="⬅️ Назад", callback_data="events_list")
@@ -958,8 +1038,162 @@ async def send_event_detail(message: Message, event_id: int):
     await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 
-# Заглушка для отзывов
-@router.callback_query(F.data == "reviews_stub")
-async def reviews_stub(callback: CallbackQuery):
-    """Заглушка для отзывов"""
-    await callback.answer("Функционал отзывов в разработке", show_alert=True)
+@router.callback_query(F.data.startswith("reviews_list:"))
+async def show_reviews_list(callback: CallbackQuery):
+    """Показ списка отзывов для мероприятия"""
+    event_id = int(callback.data.split(":")[1])
+    await _show_reviews_page(callback, event_id, page=1)
+
+
+@router.callback_query(F.data.startswith("reviews_page:"))
+async def show_reviews_page(callback: CallbackQuery):
+    """Просмотр страницы с отзывами"""
+    data = callback.data.split(":")
+    event_id = int(data[1])
+    page = int(data[2])
+    await _show_reviews_page(callback, event_id, page)
+
+
+async def _show_reviews_page(callback: CallbackQuery, event_id: int, page: int):
+    """Внутренняя функция для отображения страницы с отзывами"""
+    async with Session() as session:
+        # Получаем информацию о мероприятии
+        event_query = select(Event).where(Event.id == event_id)
+        event_result = await session.execute(event_query)
+        event = event_result.scalar_one_or_none()
+
+        if not event:
+            await callback.answer("Мероприятие не найдено")
+            return
+
+        # Получаем отзывы для этого мероприятия с пагинацией
+        reviews_query = (select(Review)
+                         .where(Review.event_id == event_id)
+                         .order_by(desc(Review.created_at))
+                         .offset((page - 1) * STRINGS_PER_PAGE)
+                         .limit(STRINGS_PER_PAGE))
+        reviews_result = await session.execute(reviews_query)
+        reviews = reviews_result.scalars().all()
+
+        # Для каждого отзыва получаем информацию о пользователе
+        reviews_with_users = []
+        for review in reviews:
+            user_query = select(User).where(User.user_id == review.user_id)
+            user_result = await session.execute(user_query)
+            user = user_result.scalar_one_or_none()
+            reviews_with_users.append((review, user))
+
+        # Получаем общее количество отзывов
+        count_query = select(Review).where(Review.event_id == event_id)
+        count_result = await session.execute(count_query)
+        total_reviews = len(count_result.scalars().all())
+
+    total_pages = math.ceil(total_reviews / STRINGS_PER_PAGE)
+
+    # Формируем текст сообщения
+    event_date_str = event.event_date.strftime("%d.%m.%Y")
+    text = (f"Мероприятие: {event.title}\n"
+            f"Дата проведения: {event_date_str}\n"
+            f"Все отзывы: {total_reviews}")
+
+    # Создаем клавиатуру с отзывами
+    keyboard_buttons = []
+    for review, user in reviews_with_users:
+        # Формируем текст кнопки: дата и информация о пользователе
+        review_date = review.created_at.strftime("%d.%m.%y")
+
+        if user:
+            user_info = user.username if user.username else (
+                user.first_name if user.first_name else f"ID{user.user_id}"
+            )
+        else:
+            user_info = f"ID{review.user_id}"
+
+        button_text = f"{review_date} {user_info}"
+
+        # Обрезаем текст если слишком длинный
+        if len(button_text) > 30:
+            button_text = button_text[:27] + "..."
+
+        keyboard_buttons.append([InlineKeyboardButton(
+            text=button_text,
+            callback_data=f"review_detail:{review.id}"
+        )])
+
+    # Добавляем кнопки пагинации
+    pagination_buttons = []
+    if page > 1:
+        pagination_buttons.append(InlineKeyboardButton(
+            text="⬅️ Назад",
+            callback_data=f"reviews_page:{event_id}:{page - 1}"
+        ))
+    if page < total_pages:
+        pagination_buttons.append(InlineKeyboardButton(
+            text="Вперед ➡️",
+            callback_data=f"reviews_page:{event_id}:{page + 1}"
+        ))
+
+    if pagination_buttons:
+        keyboard_buttons.append(pagination_buttons)
+
+    # Добавляем кнопку "Назад"
+    keyboard_buttons.append([InlineKeyboardButton(
+        text="⬅️ Назад",
+        callback_data=f"event_detail:{event_id}"
+    )])
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+
+    await callback.message.edit_text(text, reply_markup=keyboard)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("review_detail:"))
+async def show_review_detail(callback: CallbackQuery):
+    """Просмотр деталей отзыва"""
+    review_id = int(callback.data.split(":")[1])
+
+    async with Session() as session:
+        # Получаем отзыв с информацией о пользователе и мероприятии
+        review_query = select(Review).where(Review.id == review_id)
+        review_result = await session.execute(review_query)
+        review = review_result.scalar_one_or_none()
+
+        if not review:
+            await callback.answer("Отзыв не найден")
+            return
+
+        # Получаем информацию о пользователе
+        user_query = select(User).where(User.user_id == review.user_id)
+        user_result = await session.execute(user_query)
+        user = user_result.scalar_one_or_none()
+
+        # Получаем информацию о мероприятии
+        event_query = select(Event).where(Event.id == review.event_id)
+        event_result = await session.execute(event_query)
+        event = event_result.scalar_one_or_none()
+
+    # Формируем текст сообщения
+    if user:
+        user_info = f"@{user.username}" if user.username else (
+            user.first_name if user.first_name else f"ID{user.user_id}"
+        )
+    else:
+        user_info = f"ID{review.user_id}"
+
+    text = (f"Пользователь: {user_info}\n"
+            f"ID: {review.user_id}\n\n"
+            f"Отзыв:\n{review.text}")
+
+    # Создаем клавиатуру
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(
+                text="⬅️ Назад",
+                callback_data=f"reviews_list:{review.event_id}"
+            )]
+        ]
+    )
+
+    await callback.message.edit_text(text, reply_markup=keyboard)
+    await callback.answer()
