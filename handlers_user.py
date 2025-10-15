@@ -1,7 +1,7 @@
 import datetime
 import math
 from sqlalchemy import select, desc
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatMemberUpdated
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatMemberUpdated, FSInputFile
 
 from db.models import Event
 from config import STRINGS_PER_PAGE
@@ -91,7 +91,7 @@ async def ask_question(callback: CallbackQuery, state: FSMContext):
                    callback.from_user.username,
                    callback.from_user.first_name,
                    callback.from_user.last_name)
-    await callback.message.edit_text("❓ Пожалуйста, задайте ваш вопрос.")
+    await callback.message.answer_photo(photo=FSInputFile('vopros.jpg'), caption="❓ Пожалуйста, задайте ваш вопрос.")
     await state.set_state(QuestionState.waiting_for_question)
     await callback.answer()
 
@@ -208,8 +208,9 @@ async def _show_user_events_page(callback: CallbackQuery, page: int):
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
-    await callback.message.edit_text(
-        f"📅 Календарь мероприятий 📋 (Страница {page}/{total_pages}):",
+    await callback.message.answer_photo(
+        photo=FSInputFile('mero.jpg'),
+        caption=f"📅 Календарь мероприятий 📋 (Страница {page}/{total_pages}):",
         reply_markup=keyboard
     )
     await callback.answer()
