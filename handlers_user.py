@@ -360,7 +360,7 @@ async def user_main_menu(callback: CallbackQuery):
         ]
     )
 
-    await callback.message.edit_text(
+    await callback.message.answer(
         "👋 Добро пожаловать!\n\n❓ Задайте вопрос или выберите интересующее вас мероприятие. 📅",
         reply_markup=keyboard
     )
