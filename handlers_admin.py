@@ -61,14 +61,14 @@ async def cmd_start_admin(message: Message):
     """Обработчик команды /start для администратора"""
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Вопросы", callback_data="admin_questions")],
-            [InlineKeyboardButton(text="Мероприятия", callback_data="admin_events")],
-            [InlineKeyboardButton(text="Рассылка", callback_data="send")],
+            [InlineKeyboardButton(text="❓ Вопросы", callback_data="admin_questions")],
+            [InlineKeyboardButton(text="📅 Мероприятия", callback_data="admin_events")],
+            [InlineKeyboardButton(text="📢 Рассылка", callback_data="send")],
         ]
     )
 
     await message.answer(
-        "Вы администратор",
+        "👨‍💼 Панель администратора\n✨ Добро пожаловать в систему управления!",
         reply_markup=keyboard
     )
 
@@ -78,14 +78,14 @@ async def main_menu_admin(message: Message):
     """Обработчик команды /start для администратора"""
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Вопросы", callback_data="admin_questions")],
-            [InlineKeyboardButton(text="Мероприятия", callback_data="admin_events")],
-            [InlineKeyboardButton(text="Рассылка", callback_data="send")],
+            [InlineKeyboardButton(text="❓ Вопросы", callback_data="admin_questions")],
+            [InlineKeyboardButton(text="📅 Мероприятия", callback_data="admin_events")],
+            [InlineKeyboardButton(text="📢 Рассылка", callback_data="send")],
         ]
     )
 
     await message.answer(
-        "Вы администратор",
+        "👨‍💼 Панель администратора\n✨ Добро пожаловать в систему управления!",
         reply_markup=keyboard
     )
 
@@ -95,14 +95,14 @@ async def admin_main_menu(callback: CallbackQuery):
     """Возврат в главное меню администратора"""
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Вопросы", callback_data="admin_questions")],
-            [InlineKeyboardButton(text="Мероприятия", callback_data="admin_events")],
-            [InlineKeyboardButton(text="Рассылка", callback_data="send")]
+            [InlineKeyboardButton(text="❓ Вопросы", callback_data="admin_questions")],
+            [InlineKeyboardButton(text="📅 Мероприятия", callback_data="admin_events")],
+            [InlineKeyboardButton(text="📢 Рассылка", callback_data="send")]
         ]
     )
 
     await callback.message.edit_text(
-        "Вы администратор",
+        "👨‍💼 Панель администратора",
         reply_markup=keyboard
     )
     await callback.answer()
@@ -113,14 +113,14 @@ async def admin_questions_menu(callback: CallbackQuery):
     """Меню вопросов для администратора"""
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Ожидают ответа", callback_data="view_unanswered:1")],
-            [InlineKeyboardButton(text="Отвеченные", callback_data="view_answered:1")],
-            [InlineKeyboardButton(text="В главное меню", callback_data="admin_main")]
+            [InlineKeyboardButton(text="⏳ Ожидают ответа", callback_data="view_unanswered:1")],
+            [InlineKeyboardButton(text="✅ Отвеченные", callback_data="view_answered:1")],
+            [InlineKeyboardButton(text="⬅️ В главное меню", callback_data="admin_main")]
         ]
     )
 
     await callback.message.edit_text(
-        "Раздел вопросы",
+        "❓ Раздел вопросов пользователей",
         reply_markup=keyboard
     )
     await callback.answer()
@@ -202,13 +202,13 @@ async def view_unanswered_questions(callback: CallbackQuery):
 
     # Добавляем кнопки навигации
     keyboard_buttons.append([
-        InlineKeyboardButton(text="Назад", callback_data="admin_questions")
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_questions")
     ])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
     await callback.message.edit_text(
-        f"Вопросы, которые требуют ответа (Страница {page}/{total_pages}):",
+        f"📋 Вопросы, ожидающие ответа (Страница {page}/{total_pages}):",
         reply_markup=keyboard
     )
     await callback.answer()
@@ -289,13 +289,13 @@ async def view_answered_questions(callback: CallbackQuery):
 
     # Добавляем кнопки навигации
     keyboard_buttons.append([
-        InlineKeyboardButton(text="Назад", callback_data="admin_questions")
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_questions")
     ])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
     await callback.message.edit_text(
-        f"Отвеченные вопросы (Страница {page}/{total_pages}):",
+        f"✅ Отвеченные вопросы (Страница {page}/{total_pages}):",
         reply_markup=keyboard
     )
     await callback.answer()
@@ -317,7 +317,7 @@ async def question_detail(callback: CallbackQuery, state: FSMContext):
         user = stmt.scalar_one_or_none()
 
         if not question:
-            await callback.answer("Вопрос не найден")
+            await callback.answer("❌ Вопрос не найден")
             return
 
         # Формируем текст сообщения
@@ -328,9 +328,9 @@ async def question_detail(callback: CallbackQuery, state: FSMContext):
         else:
             user_info = f"ID{question.user_id}"
 
-        text = f"Вопрос от: {user_info}\n"
-        text += f"Время: {date_str}\n"
-        text += f"Вопрос: {question.question}"
+        text = f"👤 Вопрос от пользователя: {user_info}\n"
+        text += f"🕐 Дата обращения: {date_str}\n"
+        text += f"❓ Текст вопроса: {question.question}"
 
         # Создаем клавиатуру
         keyboard_buttons = []
@@ -338,16 +338,16 @@ async def question_detail(callback: CallbackQuery, state: FSMContext):
         if question.answer is None:
             # Если вопрос не отвечен - показываем кнопку "Ответить"
             keyboard_buttons.append([
-                InlineKeyboardButton(text="Ответить на вопрос", callback_data=f"answer_question:{question_id}")
+                InlineKeyboardButton(text="💬 Ответить на вопрос", callback_data=f"answer_question:{question_id}")
             ])
         else:
             # Если вопрос отвечен - показываем ответ
             answer_date = question.answered_at.strftime("%d.%m.%Y %H:%M") if question.answered_at else "неизвестно"
-            text += f"\n\nОтвет: {question.answer}\n"
-            text += f"Ответ дан: {answer_date}"
+            text += f"\n\n💬 Ответ: {question.answer}\n"
+            text += f"✅ Ответ предоставлен: {answer_date}"
 
         keyboard_buttons.append([
-            InlineKeyboardButton(text="Назад", callback_data="view_unanswered:1")
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="view_unanswered:1")
         ])
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
@@ -365,7 +365,7 @@ async def start_answer(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AnswerState.waiting_for_answer)
     await state.update_data(question_id=question_id)
 
-    await callback.message.edit_text("Введите ответ на вопрос:")
+    await callback.message.edit_text("💬 Пожалуйста, введите ответ на вопрос пользователя:")
     await callback.answer()
 
 
@@ -394,16 +394,16 @@ async def process_answer(message: Message, state: FSMContext):
             try:
                 await message.bot.send_message(
                     chat_id=question.user_id,
-                    text=f"Ваш вопрос: {question.question}\nОтвет от администратора: {message.text}",
+                    text=f"❓ Ваш вопрос: {question.question}\n\n💬 Ответ администратора: {message.text}\n\n✨ Благодарим за обращение!",
                     reply_markup = get_main_keyboard()
                 )
             except Exception as e:
-                print(f"Ошибка при отправке сообщения пользователю: {e}")
+                print(f"❌ Ошибка при отправке сообщения пользователю: {e}")
 
             # Возвращаемся к списку неотвеченных вопросов
             await view_unanswered_questions_internal(message, state, page=1)
         else:
-            await message.answer("Вопрос не найден")
+            await message.answer("❌ Вопрос не найден")
 
     await state.clear()
 
@@ -474,13 +474,13 @@ async def view_unanswered_questions_internal(message: Message, state: FSMContext
         keyboard_buttons.append(pagination_buttons)
 
     keyboard_buttons.append([
-        InlineKeyboardButton(text="Назад", callback_data="admin_questions")
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_questions")
     ])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
     await message.answer(
-        f"Вопросы, которые требуют ответа (Страница {page}/{total_pages}):",
+        f"📋 Вопросы, которые требуют ответа (Страница {page}/{total_pages}):",
         reply_markup=keyboard
     )
 
@@ -491,14 +491,14 @@ async def admin_events_menu(callback: CallbackQuery):
     """Меню мероприятий для администратора"""
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Создать мероприятие", callback_data="create_event")],
-            [InlineKeyboardButton(text="Список мероприятий", callback_data="events_list")],
-            [InlineKeyboardButton(text="Назад", callback_data="admin_main")]
+            [InlineKeyboardButton(text="✨ Создать мероприятие", callback_data="create_event")],
+            [InlineKeyboardButton(text="📋 Список мероприятий", callback_data="events_list")],
+            [InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_main")]
         ]
     )
 
     await callback.message.edit_text(
-        "Мероприятия",
+        "📅 Управление мероприятиями",
         reply_markup=keyboard
     )
     await callback.answer()
@@ -507,7 +507,7 @@ async def admin_events_menu(callback: CallbackQuery):
 @router.callback_query(F.data == "create_event")
 async def start_create_event(callback: CallbackQuery, state: FSMContext):
     """Начало создания мероприятия"""
-    await callback.message.edit_text("Введите название мероприятия:")
+    await callback.message.edit_text("📝 Введите название мероприятия:")
     await state.set_state(EventState.waiting_for_title)
     await callback.answer()
 
@@ -516,7 +516,7 @@ async def start_create_event(callback: CallbackQuery, state: FSMContext):
 async def process_event_title(message: Message, state: FSMContext):
     """Обработка названия мероприятия"""
     await state.update_data(title=message.text)
-    await message.answer("Введите описание мероприятия:")
+    await message.answer("📄 Введите описание мероприятия:")
     await state.set_state(EventState.waiting_for_description)
 
 
@@ -524,7 +524,7 @@ async def process_event_title(message: Message, state: FSMContext):
 async def process_event_description(message: Message, state: FSMContext):
     """Обработка описания мероприятия"""
     await state.update_data(description=message.text)
-    await message.answer("Введите дату мероприятия в формате ДД.ММ.ГГ (например, 25.12.24):")
+    await message.answer("📅 Введите дату мероприятия в формате ДД.ММ.ГГ (например, 25.12.24):")
     await state.set_state(EventState.waiting_for_date)
 
 
@@ -539,18 +539,18 @@ async def process_event_date(message: Message, state: FSMContext):
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="Нет видео", callback_data="no_video")]
+                [InlineKeyboardButton(text="❌ Нет видео", callback_data="no_video")]
             ]
         )
 
         await message.answer(
-            "Введите ссылку на видео по мероприятию:",
+            "🎥 Введите ссылку на видео по мероприятию:",
             reply_markup=keyboard
         )
         await state.set_state(EventState.waiting_for_video)
     except ValueError:
         await message.answer(
-            "Неверный формат даты. Пожалуйста, введите дату в формате ДД.ММ.ГГ(например, 25.12.24):")
+            "❌ Неверный формат даты. Пожалуйста, введите дату в формате ДД.ММ.ГГ(например, 25.12.24):")
 
 
 @router.callback_query(F.data == "no_video", EventState.waiting_for_video)
@@ -582,20 +582,20 @@ async def process_event_final(message: Message, state: FSMContext, video_url: st
         await session.commit()
         event_id = event.id
 
-    await message.answer("Мероприятие успешно создано!")
+    await message.answer("✅ Мероприятие успешно создано!")
     if video_url:
         users = await get_all_users_unblock()
         print(users)
         count = 0
         date_str = event.event_date.strftime("%d.%m.%Y")
-        text = f"<i>Название:</i> <b>{data['title']}</b>\n"
+        text = f"🎉 Новое мероприятие!\n\n<i>Название:</i> <b>{data['title']}</b>\n"
         text += f"<i>Дата проведения:</i> {date_str}\n\n"
         text += f"{data['description']}"
         text += f"\n\n<i>Ссылка на видео:</i> {video_url}\n\n"
-        text += 'Как вам сегодняшний выпуск? Оставьте отзыв 👇'
+        text += '💬 Поделитесь, пожалуйста, вашим мнением о мероприятии 👇'
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="Оставить отзыв", callback_data=f"leave_review:{event_id}")]
+                [InlineKeyboardButton(text="💬 Оставить отзыв", callback_data=f"leave_review:{event_id}")]
             ]
         )
         for user_id in users:
@@ -604,19 +604,19 @@ async def process_event_final(message: Message, state: FSMContext, video_url: st
                 count += 1
             except:
                 pass
-        await message.answer(f"Выполнено уведомление о новом выпуске {count} юзерам")
+        await message.answer(f"✅ Уведомление о новом мероприятии отправлено {count} пользователям")
 
 
     # Возвращаем в меню мероприятий
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Создать мероприятие", callback_data="create_event")],
-            [InlineKeyboardButton(text="Мероприятия", callback_data="events_list")],
-            [InlineKeyboardButton(text="Назад", callback_data="admin_main")]
+            [InlineKeyboardButton(text="✨ Создать мероприятие", callback_data="create_event")],
+            [InlineKeyboardButton(text="📋 Мероприятия", callback_data="events_list")],
+            [InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_main")]
         ]
     )
 
-    await message.answer("Мероприятия", reply_markup=keyboard)
+    await message.answer("📅 Управление мероприятиями", reply_markup=keyboard)
     await state.clear()
 
 
@@ -688,13 +688,13 @@ async def _show_events_page(callback: CallbackQuery, page: int):
 
     # Добавляем кнопку возврата
     keyboard_buttons.append([
-        InlineKeyboardButton(text="Назад", callback_data="admin_events")
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_events")
     ])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
     await callback.message.edit_text(
-        f"Список мероприятий (Страница {page}/{total_pages}):",
+        f"📅 Список мероприятий (Страница {page}/{total_pages}):",
         reply_markup=keyboard
     )
     await callback.answer()
@@ -711,17 +711,17 @@ async def event_detail(callback: CallbackQuery):
         event = result.scalar_one_or_none()
 
         if not event:
-            await callback.answer("Мероприятие не найдено")
+            await callback.answer("❌ Мероприятие не найдено")
             return
 
         # Форматируем дату
         date_str = event.event_date.strftime("%d.%m.%Y")
 
         # Формируем текст сообщения
-        text = f"<i>Название:</i> <b>{event.title}</b>\n"
-        text += f"<i>Дата проведения:</i> {date_str}\n\n"
-        text += f"{event.description}"
-        text += f"\n\n<i>Ссылка на видео:</i> {event.video_url if event.video_url else 'запись появится позже'}"
+        text = f"📌 <i>Название:</i> <b>{event.title}</b>\n"
+        text += f"📅 <i>Дата проведения:</i> {date_str}\n\n"
+        text += f"📄 {event.description}"
+        text += f"\n\n🎥 <i>Ссылка на видео:</i> {event.video_url if event.video_url else 'запись появится позже'}"
 
     # Создаем клавиатуру
     keyboard = InlineKeyboardMarkup(
@@ -759,12 +759,12 @@ async def delete_event(callback: CallbackQuery):
             # Удаляем мероприятие (отзывы удалятся каскадно благодаря настройкам в моделях)
             await session.delete(event)
             await session.commit()
-            await callback.answer("Мероприятие удалено")
+            await callback.answer("✅ Мероприятие удалено")
         else:
-            await callback.answer("Мероприятие не найдено")
+            await callback.answer("❌ Мероприятие не найдено")
 
     # Отправляем новое сообщение со списком мероприятий
-    await callback.message.answer("Мероприятие удалено. Возвращаемся к списку мероприятий:")
+    await callback.message.answer("✅ Мероприятие удалено. Возвращаемся к списку мероприятий:")
     await _show_events_page_internal(callback.message, page=1)
 
 
@@ -822,13 +822,13 @@ async def _show_events_page_internal(message: Message, page: int):
 
     # Добавляем кнопку возврата
     keyboard_buttons.append([
-        InlineKeyboardButton(text="Назад", callback_data="admin_events")
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_events")
     ])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
     await message.answer(
-        f"Список мероприятий (Страница {page}/{total_pages}):",
+        f"📅 Список мероприятий (Страница {page}/{total_pages}):",
         reply_markup=keyboard
     )
 
@@ -846,15 +846,15 @@ async def start_edit_event(callback: CallbackQuery, state: FSMContext):
     # Показываем клавиатуру выбора поля для редактирования
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Название", callback_data="edit_field:title")],
-            [InlineKeyboardButton(text="Описание", callback_data="edit_field:description")],
-            [InlineKeyboardButton(text="Дата", callback_data="edit_field:date")],
-            [InlineKeyboardButton(text="Видео", callback_data="edit_field:video")],
+            [InlineKeyboardButton(text="📝 Название", callback_data="edit_field:title")],
+            [InlineKeyboardButton(text="📄 Описание", callback_data="edit_field:description")],
+            [InlineKeyboardButton(text="📅 Дата", callback_data="edit_field:date")],
+            [InlineKeyboardButton(text="🎥 Видео", callback_data="edit_field:video")],
             [InlineKeyboardButton(text="⬅️ Назад", callback_data=f"event_detail:{event_id}")]
         ]
     )
 
-    await callback.message.edit_text("Выберите поле для редактирования:", reply_markup=keyboard)
+    await callback.message.edit_text("✏️ Выберите поле для редактирования:", reply_markup=keyboard)
     await callback.answer()
 
 
@@ -876,21 +876,21 @@ async def select_edit_field(callback: CallbackQuery, state: FSMContext):
     }
 
     if field == "date":
-        await callback.message.answer(f"Введите новую {field_names[field]} в формате ДД.ММ.ГГ (например, 25.12.24):")
+        await callback.message.answer(f"📅 Введите новую {field_names[field]} в формате ДД.ММ.ГГ (например, 25.12.24):")
         await state.set_state(EditEventState.waiting_for_new_date)
     elif field == "video":
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="Удалить видео", callback_data="remove_video")]
+                [InlineKeyboardButton(text="🗑️ Удалить видео", callback_data="remove_video")]
             ]
         )
         await callback.message.answer(
-            f"Введите новую {field_names[field]} или нажмите кнопку чтобы удалить текущее:",
+            f"🎥 Введите новую {field_names[field]} или нажмите кнопку чтобы удалить текущее:",
             reply_markup=keyboard
         )
         await state.set_state(EditEventState.waiting_for_new_video)
     else:
-        await callback.message.answer(f"Введите новое {field_names[field]}:")
+        await callback.message.answer(f"✏️ Введите новое {field_names[field]}:")
         await state.set_state(getattr(EditEventState, f"waiting_for_new_{field}"))
 
     await callback.answer()
@@ -917,7 +917,7 @@ async def process_new_date(message: Message, state: FSMContext):
         event_date = datetime.datetime.strptime(message.text, "%d.%m.%y")
         await update_event_field(message, state, "event_date", event_date)
     except ValueError:
-        await message.answer("Неверный формат даты. Пожалуйста, введите дату в формате ДД.ММ.ГГ (например, 25.12.24):")
+        await message.answer("❌ Неверный формат даты. Пожалуйста, введите дату в формате ДД.ММ.ГГ (например, 25.12.24):")
 
 
 @router.message(EditEventState.waiting_for_new_video)
@@ -936,14 +936,14 @@ async def process_new_video(message: Message, state: FSMContext):
         print(users)
         count = 0
         date_str = event.event_date.strftime("%d.%m.%Y")
-        text = f"<i>Название:</i> <b>{event.title}</b>\n"
+        text = f"🎉 Новое мероприятие!\n\n<i>Название:</i> <b>{data['title']}</b>\n"
         text += f"<i>Дата проведения:</i> {date_str}\n\n"
-        text += f"{event.description}"
+        text += f"{data['description']}"
         text += f"\n\n<i>Ссылка на видео:</i> {event.video_url}\n\n"
-        text += 'Как вам сегодняшний выпуск? Оставьте отзыв 👇'
+        text += '💬 Поделитесь, пожалуйста, вашим мнением о мероприятии 👇'
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="Оставить отзыв", callback_data=f"leave_review:{event_id}")]
+                [InlineKeyboardButton(text="💬 Оставить отзыв", callback_data=f"leave_review:{event_id}")]
             ]
         )
         for user_id in users:
@@ -952,7 +952,7 @@ async def process_new_video(message: Message, state: FSMContext):
                 count += 1
             except:
                 pass
-        await message.answer(f"Выполнено уведомление о новом выпуске {count} юзерам")
+        await message.answer(f"✅ Уведомление о новом мероприятии отправлено {count} пользователям")
 
 
 @router.callback_query(F.data == "remove_video", EditEventState.waiting_for_new_video)
@@ -1005,19 +1005,19 @@ async def send_event_detail(message: Message, event_id: int):
         event = result.scalar_one_or_none()
 
         if not event:
-            await message.answer("Мероприятие не найдено")
+            await message.answer("❌ Мероприятие не найдено")
             return
 
         # Форматируем дату
         date_str = event.event_date.strftime("%d.%m.%Y")
 
         # Формируем текст сообщения
-        text = f"<b>{event.title}</b>\n"
-        text += f"<i>Дата проведения: {date_str}</i>\n\n"
-        text += f"{event.description}"
+        text = f"📌 <b>{event.title}</b>\n"
+        text += f"📅 <i>Дата проведения: {date_str}</i>\n\n"
+        text += f"📄 {event.description}"
 
         if event.video_url:
-            text += f"\n\n<b>Видео:</b> {event.video_url}"
+            text += f"\n\n🎥 <b>Видео:</b> {event.video_url}"
 
     # Создаем клавиатуру
     keyboard = InlineKeyboardMarkup(
@@ -1063,7 +1063,7 @@ async def _show_reviews_page(callback: CallbackQuery, event_id: int, page: int):
         event = event_result.scalar_one_or_none()
 
         if not event:
-            await callback.answer("Мероприятие не найдено")
+            await callback.answer("❌ Мероприятие не найдено")
             return
 
         # Получаем отзывы для этого мероприятия с пагинацией
@@ -1092,9 +1092,9 @@ async def _show_reviews_page(callback: CallbackQuery, event_id: int, page: int):
 
     # Формируем текст сообщения
     event_date_str = event.event_date.strftime("%d.%m.%Y")
-    text = (f"Мероприятие: {event.title}\n"
-            f"Дата проведения: {event_date_str}\n"
-            f"Все отзывы: {total_reviews}")
+    text = (f"📅 Мероприятие: {event.title}\n"
+            f"📆 Дата проведения: {event_date_str}\n"
+            f"💬 Все отзывы: {total_reviews}")
 
     # Создаем клавиатуру с отзывами
     keyboard_buttons = []
@@ -1160,7 +1160,7 @@ async def show_review_detail(callback: CallbackQuery):
         review = review_result.scalar_one_or_none()
 
         if not review:
-            await callback.answer("Отзыв не найден")
+            await callback.answer("❌ Отзыв не найден")
             return
 
         # Получаем информацию о пользователе
@@ -1181,9 +1181,9 @@ async def show_review_detail(callback: CallbackQuery):
     else:
         user_info = f"ID{review.user_id}"
 
-    text = (f"Пользователь: {user_info}\n"
-            f"ID: {review.user_id}\n\n"
-            f"Отзыв:\n{review.text}")
+    text = (f"👤 Пользователь: {user_info}\n"
+            f"🆔 ID: {review.user_id}\n\n"
+            f"💬 Отзыв:\n{review.text}")
 
     # Создаем клавиатуру
     keyboard = InlineKeyboardMarkup(

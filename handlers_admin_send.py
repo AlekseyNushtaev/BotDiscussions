@@ -23,8 +23,8 @@ media_groups: Dict[str, List[Message]] = defaultdict(list)
 timers: Dict[str, asyncio.Task] = {}
 builder = InlineKeyboardBuilder()
 
-builder.row(InlineKeyboardButton(text="Записаться на консультацию ✅", callback_data="quest_1"))
-builder.row(InlineKeyboardButton(text="Подписаться на телеграм канал", url="https://t.me/andreikuvshinov"))
+builder.row(InlineKeyboardButton(text="✅ Записаться на консультацию", callback_data="quest_1"))
+builder.row(InlineKeyboardButton(text="📢 Подписаться на телеграм канал", url="https://t.me/andreikuvshinov"))
 
 main_keyboard_markup = builder.as_markup()
 
@@ -57,8 +57,8 @@ class FSMFillForm(StatesGroup):
 
 @router.callback_query(F.data == 'send', StateFilter(default_state), F.from_user.id.in_(ADMIN_IDS))
 async def send_to_all(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer(text='Сейчас мы подготовим сообщение для рассылки по юзерам!\n'
-                              'Отправьте пжл текстовое сообщение или картинку(можно с текстом) или видео(можно с текстом) или видео-кружок')
+    await callback.message.answer(text='📝 Сейчас мы подготовим сообщение для рассылки по юзерам!\n'
+                              'Отправьте пожалуйста текстовое сообщение 📨 или картинку 🖼️ (можно с текстом) или видео 🎥 (можно с текстом) или видео-кружок ⭕')
     await state.set_state(FSMFillForm.send)
 
 
@@ -68,23 +68,23 @@ async def send_to_all(callback: types.CallbackQuery, state: FSMContext):
 @router.message(F.text, StateFilter(FSMFillForm.send), F.from_user.id.in_(ADMIN_IDS))
 async def text_add_button(message: types.Message, state: FSMContext):
     await state.update_data(text=message.text)
-    await message.answer(text='Добавим кнопку-ссылку?', reply_markup=create_kb(2, yes='Да', no='Нет'))
+    await message.answer(text='🔗 Добавим кнопку-ссылку?', reply_markup=create_kb(2, yes='✅ Да', no='❌ Нет'))
     await state.set_state(FSMFillForm.text_add_button)
 
 
 @router.callback_query(F.data == 'no', StateFilter(FSMFillForm.text_add_button), F.from_user.id.in_(ADMIN_IDS))
 async def text_add_button_no(cb: types.CallbackQuery, state: FSMContext):
     dct = await state.get_data()
-    await cb.message.answer(text='Проверьте ваше сообщение для отправки')
+    await cb.message.answer(text='👀 Проверьте ваше сообщение для отправки')
     await cb.message.answer(text=dct['text'])
-    await cb.message.answer(text='Оформление верно?', reply_markup=create_kb(2, yes='Да', no='Нет, сброс'))
+    await cb.message.answer(text='✅ Оформление верно?', reply_markup=create_kb(2, yes='✅ Да', no='❌ Нет, сброс'))
     await state.set_state(FSMFillForm.check_text_1)
 
 
 @router.callback_query(F.data == 'yes', StateFilter(FSMFillForm.check_text_1), F.from_user.id.in_(ADMIN_IDS))
 async def check_text_yes_1(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text='Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
-                            reply_markup=create_kb(1, now='Отправить сейчас'))
+    await cb.message.answer(text='📅 Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
+                            reply_markup=create_kb(1, now='🚀 Отправить сейчас'))
     await state.set_state(FSMFillForm.check_text_1_time)
 
 
@@ -130,21 +130,21 @@ async def check_text_yes_1_time(cb: types.CallbackQuery, state: FSMContext):
         except Exception as e:
             await bot.send_message(1012882762, str(e))
             await bot.send_message(1012882762, str(user_id))
-    await cb.message.answer(text=f'Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
+    await cb.message.answer(text=f'✅ Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
     await state.set_state(default_state)
     await state.clear()
 
 
 @router.callback_query(F.data == 'yes', StateFilter(FSMFillForm.text_add_button), F.from_user.id.in_(ADMIN_IDS))
 async def text_add_button_yes_1(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text='Введите текст кнопки-ссылки')
+    await cb.message.answer(text='✏️ Введите текст кнопки-ссылки')
     await state.set_state(FSMFillForm.text_add_button_text)
 
 
 @router.message(F.text, StateFilter(FSMFillForm.text_add_button_text), F.from_user.id.in_(ADMIN_IDS))
 async def text_add_button_yes_2(message: types.Message, state: FSMContext):
     await state.update_data(button_text=message.text)
-    await message.answer(text='Теперь введите корректный url(ссылка на сайт, телеграмм)')
+    await message.answer(text='🔗 Теперь введите корректный url (ссылка на сайт, телеграмм)')
     await state.set_state(FSMFillForm.text_add_button_url)
 
 
@@ -153,19 +153,19 @@ async def text_add_button_yes_3(message: types.Message, state: FSMContext):
     await state.update_data(button_url=message.text)
     dct = await state.get_data()
     try:
-        await message.answer(text='Проверьте ваше сообщение для отправки')
+        await message.answer(text='👀 Проверьте ваше сообщение для отправки')
         await message.answer(text=dct['text'], reply_markup=kb_button(dct['button_text'], dct['button_url']))
-        await message.answer(text='Оформление верно?', reply_markup=create_kb(2, yes='Да', no='Нет, сброс'))
+        await message.answer(text='✅ Оформление верно?', reply_markup=create_kb(2, yes='✅ Да', no='❌ Нет, сброс'))
         await state.set_state(FSMFillForm.check_text_2)
     except Exception:
-        await message.answer(text='Скорее всего вы ввели не корректный url. Направьте корректный url')
+        await message.answer(text='❌ Скорее всего вы ввели не корректный url. Направьте корректный url')
         await state.set_state(FSMFillForm.text_add_button_url)
 
 
 @router.callback_query(F.data == 'yes', StateFilter(FSMFillForm.check_text_2), F.from_user.id.in_(ADMIN_IDS))
 async def check_text_yes_1(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text='Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
-                            reply_markup=create_kb(1, now='Отправить сейчас'))
+    await cb.message.answer(text='📅 Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
+                            reply_markup=create_kb(1, now='🚀 Отправить сейчас'))
     await state.set_state(FSMFillForm.check_text_2_time)
 
 
@@ -213,7 +213,7 @@ async def check_text_yes_2(cb: types.CallbackQuery, state: FSMContext):
         except Exception as e:
             await bot.send_message(1012882762, str(e))
             await bot.send_message(1012882762, str(user_id))
-    await cb.message.answer(text=f'Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
+    await cb.message.answer(text=f'✅ Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
     await state.set_state(default_state)
     await state.clear()
 
@@ -228,26 +228,26 @@ async def photo_add_button(message: types.Message, state: FSMContext):
         await state.update_data(caption=message.caption)
     except Exception:
         pass
-    await message.answer(text='Добавим кнопку-ссылку?', reply_markup=create_kb(2, yes='Да', no='Нет'))
+    await message.answer(text='🔗 Добавим кнопку-ссылку?', reply_markup=create_kb(2, yes='✅ Да', no='❌ Нет'))
     await state.set_state(FSMFillForm.photo_add_button)
 
 
 @router.callback_query(F.data == 'no', StateFilter(FSMFillForm.photo_add_button), F.from_user.id.in_(ADMIN_IDS))
 async def text_add_button_no(cb: types.CallbackQuery, state: FSMContext):
     dct = await state.get_data()
-    await cb.message.answer(text='Проверьте ваше сообщение для отправки')
+    await cb.message.answer(text='👀 Проверьте ваше сообщение для отправки')
     if dct.get('caption'):
         await cb.message.answer_photo(photo=dct['photo_id'], caption=dct['caption'])
     else:
         await cb.message.answer_photo(photo=dct['photo_id'])
-    await cb.message.answer(text='Оформление верно?', reply_markup=create_kb(2, yes='Да', no='Нет, сброс'))
+    await cb.message.answer(text='✅ Оформление верно?', reply_markup=create_kb(2, yes='✅ Да', no='❌ Нет, сброс'))
     await state.set_state(FSMFillForm.check_photo_1)
 
 
 @router.callback_query(F.data == 'yes', StateFilter(FSMFillForm.check_photo_1), F.from_user.id.in_(ADMIN_IDS))
 async def check_photo_yes_1(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text='Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
-                            reply_markup=create_kb(1, now='Отправить сейчас'))
+    await cb.message.answer(text='📅 Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
+                            reply_markup=create_kb(1, now='🚀 Отправить сейчас'))
     await state.set_state(FSMFillForm.check_photo_1_time)
 
 
@@ -297,21 +297,21 @@ async def check_photo_yes_1(cb: types.CallbackQuery, state: FSMContext):
         except Exception as e:
             await bot.send_message(1012882762, str(e))
             await bot.send_message(1012882762, str(user_id))
-    await cb.message.answer(text=f'Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
+    await cb.message.answer(text=f'✅ Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
     await state.set_state(default_state)
     await state.clear()
 
 
 @router.callback_query(F.data == 'yes', StateFilter(FSMFillForm.photo_add_button), F.from_user.id.in_(ADMIN_IDS))
 async def photo_add_button_yes_1(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text='Введите текст кнопки-ссылки')
+    await cb.message.answer(text='✏️ Введите текст кнопки-ссылки')
     await state.set_state(FSMFillForm.photo_add_button_text)
 
 
 @router.message(F.text, StateFilter(FSMFillForm.photo_add_button_text), F.from_user.id.in_(ADMIN_IDS))
 async def photo_add_button_yes_2(message: types.Message, state: FSMContext):
     await state.update_data(button_text=message.text)
-    await message.answer(text='Теперь введите корректный url(ссылка на сайт, телеграмм)')
+    await message.answer(text='🔗 Теперь введите корректный url (ссылка на сайт, телеграмм)')
     await state.set_state(FSMFillForm.photo_add_button_url)
 
 
@@ -320,23 +320,23 @@ async def photo_add_button_yes_3(message: types.Message, state: FSMContext):
     await state.update_data(button_url=message.text)
     dct = await state.get_data()
     try:
-        await message.answer(text='Проверьте ваше сообщение для отправки')
+        await message.answer(text='👀 Проверьте ваше сообщение для отправки')
         if dct.get('caption'):
             await message.answer_photo(photo=dct['photo_id'], caption=dct['caption'], reply_markup=kb_button(dct['button_text'], dct['button_url']))
         else:
             await message.answer_photo(photo=dct['photo_id'], reply_markup=kb_button(dct['button_text'], dct['button_url']))
-        await message.answer(text='Оформление верно?', reply_markup=create_kb(2, yes='Да', no='Нет, сброс'))
+        await message.answer(text='✅ Оформление верно?', reply_markup=create_kb(2, yes='✅ Да', no='❌ Нет, сброс'))
         await state.set_state(FSMFillForm.check_photo_2)
     except Exception as e:
         print(e)
-        await message.answer(text='Скорее всего вы ввели не корректный url. Направьте корректный url')
+        await message.answer(text='❌ Скорее всего вы ввели не корректный url. Направьте корректный url')
         await state.set_state(FSMFillForm.photo_add_button_url)
 
 
 @router.callback_query(F.data == 'yes', StateFilter(FSMFillForm.check_photo_2), F.from_user.id.in_(ADMIN_IDS))
 async def check_photo_yes_2(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text='Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
-                            reply_markup=create_kb(1, now='Отправить сейчас'))
+    await cb.message.answer(text='📅 Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
+                            reply_markup=create_kb(1, now='🚀 Отправить сейчас'))
     await state.set_state(FSMFillForm.check_photo_2_time)
 
 
@@ -388,7 +388,7 @@ async def check_photo_yes_2(cb: types.CallbackQuery, state: FSMContext):
         except Exception as e:
             await bot.send_message(1012882762, str(e))
             await bot.send_message(1012882762, str(user_id))
-    await cb.message.answer(text=f'Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
+    await cb.message.answer(text=f'✅ Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
     await state.set_state(default_state)
     await state.clear()
 
@@ -403,26 +403,26 @@ async def video_add_button(message: types.Message, state: FSMContext):
         await state.update_data(caption=message.caption)
     except Exception:
         pass
-    await message.answer(text='Добавим кнопку-ссылку?', reply_markup=create_kb(2, yes='Да', no='Нет'))
+    await message.answer(text='🔗 Добавим кнопку-ссылку?', reply_markup=create_kb(2, yes='✅ Да', no='❌ Нет'))
     await state.set_state(FSMFillForm.video_add_button)
 
 
 @router.callback_query(F.data == 'no', StateFilter(FSMFillForm.video_add_button), F.from_user.id.in_(ADMIN_IDS))
 async def video_add_button_no(cb: types.CallbackQuery, state: FSMContext):
     dct = await state.get_data()
-    await cb.message.answer(text='Проверьте ваше сообщение для отправки')
+    await cb.message.answer(text='👀 Проверьте ваше сообщение для отправки')
     if dct.get('caption'):
         await cb.message.answer_video(video=dct['video_id'], caption=dct['caption'])
     else:
         await cb.message.answer_video(video=dct['video_id'])
-    await cb.message.answer(text='Оформление верно?', reply_markup=create_kb(2, yes='Да', no='Нет, сброс'))
+    await cb.message.answer(text='✅ Оформление верно?', reply_markup=create_kb(2, yes='✅ Да', no='❌ Нет, сброс'))
     await state.set_state(FSMFillForm.check_video_1)
 
 
 @router.callback_query(F.data == 'yes', StateFilter(FSMFillForm.check_video_1), F.from_user.id.in_(ADMIN_IDS))
 async def check_video_yes_1(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text='Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
-                            reply_markup=create_kb(1, now='Отправить сейчас'))
+    await cb.message.answer(text='📅 Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
+                            reply_markup=create_kb(1, now='🚀 Отправить сейчас'))
     await state.set_state(FSMFillForm.check_video_1_time)
 
 
@@ -472,21 +472,21 @@ async def check_video_yes_1(cb: types.CallbackQuery, state: FSMContext):
         except Exception as e:
             await bot.send_message(1012882762, str(e))
             await bot.send_message(1012882762, str(user_id))
-    await cb.message.answer(text=f'Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
+    await cb.message.answer(text=f'✅ Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
     await state.set_state(default_state)
     await state.clear()
 
 
 @router.callback_query(F.data == 'yes', StateFilter(FSMFillForm.video_add_button), F.from_user.id.in_(ADMIN_IDS))
 async def video_add_button_yes_1(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text='Введите текст кнопки-ссылки')
+    await cb.message.answer(text='✏️ Введите текст кнопки-ссылки')
     await state.set_state(FSMFillForm.video_add_button_text)
 
 
 @router.message(F.text, StateFilter(FSMFillForm.video_add_button_text), F.from_user.id.in_(ADMIN_IDS))
 async def video_add_button_yes_2(message: types.Message, state: FSMContext):
     await state.update_data(button_text=message.text)
-    await message.answer(text='Теперь введите корректный url(ссылка на сайт, телеграмм)')
+    await message.answer(text='🔗 Теперь введите корректный url (ссылка на сайт, телеграмм)')
     await state.set_state(FSMFillForm.video_add_button_url)
 
 
@@ -495,23 +495,23 @@ async def video_add_button_yes_3(message: types.Message, state: FSMContext):
     await state.update_data(button_url=message.text)
     dct = await state.get_data()
     try:
-        await message.answer(text='Проверьте ваше сообщение для отправки')
+        await message.answer(text='👀 Проверьте ваше сообщение для отправки')
         if dct.get('caption'):
             await message.answer_video(video=dct['video_id'], caption=dct['caption'], reply_markup=kb_button(dct['button_text'], dct['button_url']))
         else:
             await message.answer_video(video=dct['video_id'], reply_markup=kb_button(dct['button_text'], dct['button_url']))
-        await message.answer(text='Оформление верно?', reply_markup=create_kb(2, yes='Да', no='Нет, сброс'))
+        await message.answer(text='✅ Оформление верно?', reply_markup=create_kb(2, yes='✅ Да', no='❌ Нет, сброс'))
         await state.set_state(FSMFillForm.check_video_2)
     except Exception as e:
         print(e)
-        await message.answer(text='Скорее всего вы ввели не корректный url. Направьте корректный url')
+        await message.answer(text='❌ Скорее всего вы ввели не корректный url. Направьте корректный url')
         await state.set_state(FSMFillForm.video_add_button_url)
 
 
 @router.callback_query(F.data == 'yes', StateFilter(FSMFillForm.check_video_2), F.from_user.id.in_(ADMIN_IDS))
 async def check_video_yes_2(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text='Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
-                            reply_markup=create_kb(1, now='Отправить сейчас'))
+    await cb.message.answer(text='📅 Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
+                            reply_markup=create_kb(1, now='🚀 Отправить сейчас'))
     await state.set_state(FSMFillForm.check_video_2_time)
 
 
@@ -563,7 +563,7 @@ async def check_video_yes_2_time(cb: types.CallbackQuery, state: FSMContext):
         except Exception as e:
             await bot.send_message(1012882762, str(e))
             await bot.send_message(1012882762, str(user_id))
-    await cb.message.answer(text=f'Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
+    await cb.message.answer(text=f'✅ Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
     await state.set_state(default_state)
     await state.clear()
 
@@ -574,15 +574,15 @@ async def check_video_yes_2_time(cb: types.CallbackQuery, state: FSMContext):
 @router.message(F.video_note, StateFilter(FSMFillForm.send), F.from_user.id.in_(ADMIN_IDS))
 async def video_note_check(message: types.Message, state: FSMContext):
     await state.update_data(video_note_id=message.video_note.file_id)
-    await message.answer(text='Проверьте вашу запись в кружке для отправки')
-    await message.answer(text='Оформление верно?', reply_markup=create_kb(2, yes='Да', no='Нет, сброс'))
+    await message.answer(text='👀 Проверьте вашу запись в кружке для отправки')
+    await message.answer(text='✅ Оформление верно?', reply_markup=create_kb(2, yes='✅ Да', no='❌ Нет, сброс'))
     await state.set_state(FSMFillForm.check_video_note_1)
 
 
 @router.callback_query(F.data == 'yes', StateFilter(FSMFillForm.check_video_note_1), F.from_user.id.in_(ADMIN_IDS))
 async def check_videonote_yes_1(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text='Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
-                            reply_markup=create_kb(1, now='Отправить сейчас'))
+    await cb.message.answer(text='📅 Введите дату и время отправки в формате ДД.ММ.ГГ ЧЧ.ММ или отправьте сейчас',
+                            reply_markup=create_kb(1, now='🚀 Отправить сейчас'))
     await state.set_state(FSMFillForm.check_video_note_1_time)
 
 
@@ -628,7 +628,7 @@ async def check_video_note_yes_1_time(cb: types.CallbackQuery, state: FSMContext
         except Exception as e:
             await bot.send_message(1012882762, str(e))
             await bot.send_message(1012882762, str(user_id))
-    await cb.message.answer(text=f'Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
+    await cb.message.answer(text=f'✅ Сообщение отправлено {count} юзерам', reply_markup=admin_keyboard)
     await state.set_state(default_state)
     await state.clear()
 
@@ -640,7 +640,7 @@ async def check_video_note_yes_1_time(cb: types.CallbackQuery, state: FSMContext
                        FSMFillForm.check_photo_1, FSMFillForm.check_photo_2, FSMFillForm.check_video_1,
                        FSMFillForm.check_video_2, FSMFillForm.check_video_note_1), F.from_user.id.in_(ADMIN_IDS))
 async def check_message_no(cb: types.CallbackQuery, state: FSMContext):
-    await cb.message.answer(text=f'Сообщение не отправлено', reply_markup=admin_keyboard)
+    await cb.message.answer(text=f'❌ Сообщение не отправлено', reply_markup=admin_keyboard)
     await cb.answer()
     await state.set_state(default_state)
     await state.clear()

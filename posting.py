@@ -102,7 +102,7 @@ async def scheduler(hour):
                         await session.commit()
                     for admin_id in ADMIN_IDS:
                         await bot.send_message(admin_id,
-                                               text=f'Отложенное сообщение отправлено {count} юзерам',
+                                               text=f'✅ Отложенное сообщение отправлено {count} юзерам',
                                                reply_markup=admin_keyboard)
         except Exception as e:
             await bot.send_message(1012882762, str(e))

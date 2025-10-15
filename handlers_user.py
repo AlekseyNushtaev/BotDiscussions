@@ -55,13 +55,13 @@ async def cmd_start(message: Message):
                    message.from_user.last_name)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Задать вопрос", callback_data="ask_question")],
-            [InlineKeyboardButton(text="Календарь мероприятий", callback_data="events_calendar")]
+            [InlineKeyboardButton(text="❓ Задать вопрос", callback_data="ask_question")],
+            [InlineKeyboardButton(text="📅 Календарь мероприятий", callback_data="events_calendar")]
         ]
     )
 
     await message.answer(
-        "Добро пожаловать, задайте вопрос или выберите интересующее вас мероприятие.",
+        "👋 Добро пожаловать!\n\n❓ Задайте вопрос или выберите интересующее вас мероприятие. 📅",
         reply_markup=keyboard
     )
 
@@ -74,13 +74,13 @@ async def main_menu(message: Message):
                    message.from_user.last_name)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Задать вопрос", callback_data="ask_question")],
-            [InlineKeyboardButton(text="Календарь мероприятий", callback_data="events_calendar")]
+            [InlineKeyboardButton(text="❓ Задать вопрос", callback_data="ask_question")],
+            [InlineKeyboardButton(text="📅 Календарь мероприятий", callback_data="events_calendar")]
         ]
     )
 
     await message.answer(
-        "Добро пожаловать, задайте вопрос или выберите интересующее вас мероприятие.",
+        "👋 Добро пожаловать!\n\n❓ Задайте вопрос или выберите интересующее вас мероприятие. 📅",
         reply_markup=keyboard
     )
 
@@ -91,7 +91,7 @@ async def ask_question(callback: CallbackQuery, state: FSMContext):
                    callback.from_user.username,
                    callback.from_user.first_name,
                    callback.from_user.last_name)
-    await callback.message.edit_text("Задайте, пожалуйста, свой вопрос.")
+    await callback.message.edit_text("❓ Пожалуйста, задайте ваш вопрос.")
     await state.set_state(QuestionState.waiting_for_question)
     await callback.answer()
 
@@ -109,7 +109,7 @@ async def receive_question(message: Message, state: FSMContext):
         await session.commit()
 
     # Отправляем подтверждение пользователю
-    await message.answer("Ваш вопрос принят")
+    await message.answer("✅ Ваш вопрос принят. Мы ответим вам в ближайшее время.")
 
     # Пересылаем сообщение с вопросом администраторам
     for admin_id in ADMIN_IDS:
@@ -117,12 +117,12 @@ async def receive_question(message: Message, state: FSMContext):
             # Пересылаем оригинальное сообщение
             await bot.send_message(
                 admin_id,
-                f"Вопрос от пользователя {message.from_user.full_name} (@{message.from_user.username} ID{message.from_user.id})",
+                f"❓ Новый вопрос от пользователя {message.from_user.full_name} (@{message.from_user.username} ID{message.from_user.id})",
                 reply_markup=get_main_keyboard())
             await message.forward(admin_id)
 
         except Exception as e:
-            print(f"Ошибка при отправке сообщения администратору {admin_id}: {e}")
+            print(f"❌ Ошибка при отправке сообщения администратору {admin_id}: {e}")
 
     # Возвращаем главное меню
     await state.clear()
@@ -194,7 +194,7 @@ async def _show_user_events_page(callback: CallbackQuery, page: int):
 
     if page < total_pages:
         pagination_buttons.append(InlineKeyboardButton(
-            text="Вперед ➡️",
+            text="➡️ Вперед",
             callback_data=f"user_events_page:{page + 1}"
         ))
 
@@ -209,7 +209,7 @@ async def _show_user_events_page(callback: CallbackQuery, page: int):
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
     await callback.message.edit_text(
-        f"Календарь мероприятий (Страница {page}/{total_pages}):",
+        f"📅 Календарь мероприятий 📋 (Страница {page}/{total_pages}):",
         reply_markup=keyboard
     )
     await callback.answer()
@@ -230,17 +230,17 @@ async def user_event_detail(callback: CallbackQuery):
         event = result.scalar_one_or_none()
 
         if not event:
-            await callback.answer("Мероприятие не найдено")
+            await callback.answer("❌ Мероприятие не найдено")
             return
 
         # Форматируем дату
         date_str = event.event_date.strftime("%d.%m.%Y")
 
         # Формируем текст сообщения
-        text = f"<i>Название:</i> <b>{event.title}</b>\n"
-        text += f"<i>Дата проведения:</i> {date_str}\n\n"
-        text += f"{event.description}"
-        text += f"\n\n<i>Ссылка на видео:</i> {event.video_url if event.video_url else 'запись появится позже'}"
+        text = f"📌 <i>Название:</i> <b>{event.title}</b>\n"
+        text += f"📅 <i>Дата проведения:</i> {date_str}\n\n"
+        text += f"📄 {event.description}"
+        text += f"\n\n🎥 <i>Ссылка на видео:</i> {event.video_url if event.video_url else '📹 запись появится позже'}"
 
     # Создаем клавиатуру для пользователя
     keyboard_buttons = []
@@ -252,7 +252,7 @@ async def user_event_detail(callback: CallbackQuery):
         ])
 
     keyboard_buttons.append([
-        InlineKeyboardButton(text="⬅️ Назад", callback_data="user_events_back")
+        InlineKeyboardButton(text="⬅️ Назад к мероприятиям", callback_data="user_events_back")
     ])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
@@ -274,7 +274,7 @@ async def start_review(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ReviewState.waiting_for_review)
     await state.update_data(event_id=event_id)
 
-    await callback.message.edit_text("Напишите свой отзыв:")
+    await callback.message.edit_text("💬 Пожалуйста, напишите ваш отзыв о мероприятии:")
     await callback.answer()
 
 
@@ -315,22 +315,22 @@ async def process_review(message: Message, state: FSMContext):
                     # Отправляем информацию об отзыве
                     await bot.send_message(
                         admin_id,
-                        f"Пользователь {user_info} написал отзыв по мероприятию:\n"
-                        f"Название: {event.title}\n"
-                        f"Дата проведения: {event.event_date.strftime('%d.%m.%Y')}"
+                        f"💬 Новый отзыв от пользователя {user_info} по мероприятию:\n"
+                        f"📌 Название: {event.title}\n"
+                        f"📅 Дата проведения: {event.event_date.strftime('%d.%m.%Y')}"
                     )
 
                     # Пересылаем сообщение с отзывом
                     await message.forward(admin_id)
 
                 except Exception as e:
-                    print(f"Ошибка при отправке отзыва администратору {admin_id}: {e}")
+                    print(f"❌ Ошибка при отправке отзыва администратору {admin_id}: {e}")
 
             # Благодарим пользователя и возвращаем в главное меню
-            await message.answer("Спасибо за ваш отзыв!")
+            await message.answer("🙏 Благодарим за ваш отзыв! ✨")
             await cmd_start(message)
         else:
-            await message.answer("Ошибка при сохранении отзыва. Попробуйте позже.")
+            await message.answer("❌ Ошибка при сохранении отзыва. Попробуйте позже.")
 
     await state.clear()
 
@@ -354,13 +354,13 @@ async def user_main_menu(callback: CallbackQuery):
                    callback.from_user.last_name)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Задать вопрос", callback_data="ask_question")],
-            [InlineKeyboardButton(text="Календарь мероприятий", callback_data="events_calendar")]
+            [InlineKeyboardButton(text="❓ Задать вопрос", callback_data="ask_question")],
+            [InlineKeyboardButton(text="📅 Календарь мероприятий", callback_data="events_calendar")]
         ]
     )
 
     await callback.message.edit_text(
-        "Добро пожаловать, задайте вопрос или выберите интересующее вас мероприятие.",
+        "👋 Добро пожаловать!\n\n❓ Задайте вопрос или выберите интересующее вас мероприятие. 📅",
         reply_markup=keyboard
     )
     await callback.answer()
