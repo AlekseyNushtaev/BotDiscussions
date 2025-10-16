@@ -23,7 +23,7 @@ async def scheduler(hour):
                 sheet.clear()
                 load_rows = await prepare_sheet_data()
                 sheet.append_rows(load_rows)
-        except:
+        except Exception as e:
             await bot.send_message(1012882762, str(e))
         try:
             time_now = datetime.datetime.now()

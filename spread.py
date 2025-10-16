@@ -30,7 +30,7 @@ async def prepare_sheet_data():
         # Раздел ВОПРОСЫ
         rows.append(['Вопросы'])
         rows.append(
-            ['№', 'Текст вопроса', 'Когда создан', 'user_id', 'username', 'first_name', 'last_name', 'Текст ответа',
+            ['№', 'Текст вопроса', 'Когда создан', 'user_id', 'username', 'Текст ответа',
              'Когда ответ'])
 
         result = await session.execute(
@@ -47,8 +47,6 @@ async def prepare_sheet_data():
                 question.created_at.strftime('%Y-%m-%d %H:%M:%S') if question.created_at else '',
                 question.user_id,
                 user.username or '',
-                user.first_name or '',
-                user.last_name or '',
                 question.answer or '',
                 question.answered_at.strftime('%Y-%m-%d %H:%M:%S') if question.answered_at else ''
             ])
@@ -79,7 +77,7 @@ async def prepare_sheet_data():
 
         # Раздел ОТЗЫВЫ
         rows.append(['Отзывы'])
-        rows.append(['№', 'Текст отзыва', 'Дата написания', 'user_id', 'username', 'first_name', 'last_name',
+        rows.append(['№', 'Текст отзыва', 'Дата написания', 'user_id', 'username',
                      'Название мероприятия', 'Дата проведения мероприятия'])
 
         result = await session.execute(
@@ -97,8 +95,6 @@ async def prepare_sheet_data():
                 review.created_at.strftime('%Y-%m-%d %H:%M:%S') if review.created_at else '',
                 review.user_id,
                 user.username or '',
-                user.first_name or '',
-                user.last_name or '',
                 event.title,
                 event.event_date.strftime('%Y-%m-%d %H:%M:%S') if event.event_date else ''
             ])
@@ -132,7 +128,7 @@ async def prepare_sheet_data():
 
         # Раздел ЮЗЕРЫ
         rows.append(['Юзеры'])
-        rows.append(['№', 'user_id', 'username', 'first_name', 'last_name', 'is_block'])
+        rows.append(['№', 'user_id', 'username', 'is_block'])
 
         result = await session.execute(
             select(User).order_by(User.user_id)
@@ -144,8 +140,6 @@ async def prepare_sheet_data():
                 i,
                 user.user_id,
                 user.username or '',
-                user.first_name or '',
-                user.last_name or '',
                 'Да' if user.user_is_block else 'Нет'
             ])
 

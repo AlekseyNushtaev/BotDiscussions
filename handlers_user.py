@@ -92,8 +92,8 @@ async def ask_question(callback: CallbackQuery, state: FSMContext):
                    callback.from_user.first_name,
                    callback.from_user.last_name)
     await callback.message.answer_photo(photo=FSInputFile('vopros.jpg'),
-                                        caption="❓ Пожалуйста, задайте ваш вопрос\.\n"
-                                                "\*Отправляя сообщение Вы соглашаетесь с [Политикой конфиденциальности](https://odobrino\.ru/policy)",
+                                        caption="❓ Пожалуйста, задайте ваш вопрос\.\n\n"
+                                                "_Отправляя сообщение Вы соглашаетесь с [Политикой конфиденциальности](https://docs.google.com/document/d/10ehddmBkX9HeN0ycN4Wa8Xs6Ent1yL62HHO3rDR4lUs/edit?usp=sharing)_",
                                         parse_mode="MarkdownV2")
     await state.set_state(QuestionState.waiting_for_question)
     await callback.answer()
