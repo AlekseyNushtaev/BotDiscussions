@@ -7,6 +7,7 @@ from bot import bot
 from config import ADMIN_IDS
 from db.models import Session, Post
 from handlers_admin import get_all_users_unblock
+from handlers_user import get_all_admins_and_managers
 from keyboard import kb_button, admin_keyboard
 from spread import get_sheet, prepare_sheet_data
 
@@ -15,20 +16,21 @@ async def scheduler(hour):
     await asyncio.sleep(10)
     old = hour
     while True:
-        try:
-            if datetime.datetime.now().hour != old:
-                print(old, datetime.datetime.now().hour)
-                old = datetime.datetime.now().hour
-                sheet = await get_sheet()
-                sheet.clear()
-                load_rows = await prepare_sheet_data()
-                sheet.append_rows(load_rows)
-        except Exception as e:
-            await bot.send_message(1012882762, str(e))
+        # try:
+        #     if datetime.datetime.now().hour != old:
+        #         print(old, datetime.datetime.now().hour)
+        #         old = datetime.datetime.now().hour
+        #         sheet = await get_sheet()
+        #         sheet.clear()
+        #         load_rows = await prepare_sheet_data()
+        #         sheet.append_rows(load_rows)
+        # except Exception as e:
+        #     await bot.send_message(1012882762, str(e))
         try:
             time_now = datetime.datetime.now()
             users = await get_all_users_unblock()
-            users.extend(ADMIN_IDS)
+            admins_managers = await get_all_admins_and_managers()
+            users.extend(admins_managers)
             async with Session() as db:
                 result = await db.execute(select(Post).where(Post.flag == False))
                 # Преобразование результата в множество уникальных ID
@@ -100,7 +102,7 @@ async def scheduler(hour):
                     async with Session() as session:
                         await session.execute(update(Post).where(Post.id == post.id).values(flag=True))
                         await session.commit()
-                    for admin_id in ADMIN_IDS:
+                    for admin_id in admins_managers:
                         await bot.send_message(admin_id,
                                                text=f'✅ Отложенное сообщение отправлено {count} юзерам',
                                                reply_markup=admin_keyboard)

@@ -12,7 +12,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import datetime
 
-from keyboard import get_main_keyboard
+from filters import IsAdminOrManager
+from keyboard import get_main_keyboard, admin_keyboard, manager_keyboard
 
 router = Router()
 
@@ -56,59 +57,56 @@ async def get_all_users_unblock() -> list:
     return [user for user in result.scalars()]
 
 
-@router.message(Command("start"), F.from_user.id.in_(ADMIN_IDS))
+@router.message(Command("start"), IsAdminOrManager())
 async def cmd_start_admin(message: Message):
     """Обработчик команды /start для администратора"""
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="❓ Вопросы", callback_data="admin_questions")],
-            [InlineKeyboardButton(text="📅 Мероприятия", callback_data="admin_events")],
-            [InlineKeyboardButton(text="📢 Рассылка", callback_data="send")],
-        ]
-    )
+    if message.from_user.id in ADMIN_IDS:
+        keyboard = admin_keyboard
+        role_text = "Администратор"
+    else:
+        keyboard = manager_keyboard
+        role_text = "Менеджер"
 
     await message.answer(
-        "👨‍💼 Панель администратора\n✨ Добро пожаловать в систему управления!",
+        f"👨‍💼 Панель {role_text}\n✨ Добро пожаловать в систему управления!",
         reply_markup=keyboard
     )
 
 
-@router.message(F.text == "📊 Главное меню", F.from_user.id.in_(ADMIN_IDS))
+@router.message(F.text == "📊 Главное меню", IsAdminOrManager())
 async def main_menu_admin(message: Message):
     """Обработчик команды /start для администратора"""
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="❓ Вопросы", callback_data="admin_questions")],
-            [InlineKeyboardButton(text="📅 Мероприятия", callback_data="admin_events")],
-            [InlineKeyboardButton(text="📢 Рассылка", callback_data="send")],
-        ]
-    )
+    if message.from_user.id in ADMIN_IDS:
+        keyboard = admin_keyboard
+        role_text = "Администратор"
+    else:
+        keyboard = manager_keyboard
+        role_text = "Менеджер"
 
     await message.answer(
-        "👨‍💼 Панель администратора\n✨ Добро пожаловать в систему управления!",
+        f"👨‍💼 Панель {role_text}\n✨ Добро пожаловать в систему управления!",
         reply_markup=keyboard
     )
 
 
-@router.callback_query(F.data == "admin_main")
+@router.callback_query(F.data == "admin_main", IsAdminOrManager())
 async def admin_main_menu(callback: CallbackQuery):
     """Возврат в главное меню администратора"""
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="❓ Вопросы", callback_data="admin_questions")],
-            [InlineKeyboardButton(text="📅 Мероприятия", callback_data="admin_events")],
-            [InlineKeyboardButton(text="📢 Рассылка", callback_data="send")]
-        ]
-    )
+    if callback.from_user.id in ADMIN_IDS:
+        keyboard = admin_keyboard
+        role_text = "Администратор"
+    else:
+        keyboard = manager_keyboard
+        role_text = "Менеджер"
 
     await callback.message.edit_text(
-        "👨‍💼 Панель администратора",
+        f"👨‍💼 Панель {role_text}\n✨ Добро пожаловать в систему управления!",
         reply_markup=keyboard
     )
     await callback.answer()
 
 
-@router.callback_query(F.data == "admin_questions")
+@router.callback_query(F.data == "admin_questions", IsAdminOrManager())
 async def admin_questions_menu(callback: CallbackQuery):
     """Меню вопросов для администратора"""
     keyboard = InlineKeyboardMarkup(
@@ -126,7 +124,7 @@ async def admin_questions_menu(callback: CallbackQuery):
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("view_unanswered:"))
+@router.callback_query(F.data.startswith("view_unanswered:"), IsAdminOrManager())
 async def view_unanswered_questions(callback: CallbackQuery):
     """Просмотр неотвеченных вопросов с пагинацией"""
     page = int(callback.data.split(":")[1])
@@ -214,7 +212,7 @@ async def view_unanswered_questions(callback: CallbackQuery):
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("view_answered:"))
+@router.callback_query(F.data.startswith("view_answered:"), IsAdminOrManager())
 async def view_answered_questions(callback: CallbackQuery):
     """Просмотр отвеченных вопросов с пагинацией"""
     page = int(callback.data.split(":")[1])
@@ -302,7 +300,7 @@ async def view_answered_questions(callback: CallbackQuery):
 
 
 # Добавьте этот обработчик после существующих обработчиков
-@router.callback_query(F.data.startswith("question_detail:"))
+@router.callback_query(F.data.startswith("question_detail:"), IsAdminOrManager())
 async def question_detail(callback: CallbackQuery, state: FSMContext):
     """Детальный просмотр вопроса"""
     question_id = int(callback.data.split(":")[1])
@@ -356,7 +354,7 @@ async def question_detail(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
 
 
-@router.callback_query(F.data.startswith("answer_question:"))
+@router.callback_query(F.data.startswith("answer_question:"), IsAdminOrManager())
 async def start_answer(callback: CallbackQuery, state: FSMContext):
     """Начало процесса ответа на вопрос"""
     question_id = int(callback.data.split(":")[1])
@@ -369,7 +367,7 @@ async def start_answer(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-@router.message(AnswerState.waiting_for_answer)
+@router.message(AnswerState.waiting_for_answer, IsAdminOrManager())
 async def process_answer(message: Message, state: FSMContext):
     """Обработка ответа на вопрос"""
     data = await state.get_data()
@@ -486,7 +484,7 @@ async def view_unanswered_questions_internal(message: Message, state: FSMContext
 
 
 # Добавить обработчики после существующих
-@router.callback_query(F.data == "admin_events")
+@router.callback_query(F.data == "admin_events", IsAdminOrManager())
 async def admin_events_menu(callback: CallbackQuery):
     """Меню мероприятий для администратора"""
     keyboard = InlineKeyboardMarkup(
@@ -504,7 +502,7 @@ async def admin_events_menu(callback: CallbackQuery):
     await callback.answer()
 
 
-@router.callback_query(F.data == "create_event")
+@router.callback_query(F.data == "create_event", IsAdminOrManager())
 async def start_create_event(callback: CallbackQuery, state: FSMContext):
     """Начало создания мероприятия"""
     await callback.message.edit_text("📝 Введите название мероприятия:")
@@ -512,7 +510,7 @@ async def start_create_event(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-@router.message(EventState.waiting_for_title)
+@router.message(EventState.waiting_for_title, IsAdminOrManager())
 async def process_event_title(message: Message, state: FSMContext):
     """Обработка названия мероприятия"""
     await state.update_data(title=message.text)
@@ -520,7 +518,7 @@ async def process_event_title(message: Message, state: FSMContext):
     await state.set_state(EventState.waiting_for_description)
 
 
-@router.message(EventState.waiting_for_description)
+@router.message(EventState.waiting_for_description, IsAdminOrManager())
 async def process_event_description(message: Message, state: FSMContext):
     """Обработка описания мероприятия"""
     await state.update_data(description=message.text)
@@ -528,7 +526,7 @@ async def process_event_description(message: Message, state: FSMContext):
     await state.set_state(EventState.waiting_for_date)
 
 
-@router.message(EventState.waiting_for_date)
+@router.message(EventState.waiting_for_date, IsAdminOrManager())
 async def process_event_date(message: Message, state: FSMContext):
     """Обработка даты мероприятия с валидацией"""
     try:
@@ -553,14 +551,14 @@ async def process_event_date(message: Message, state: FSMContext):
             "❌ Неверный формат даты. Пожалуйста, введите дату в формате ДД.ММ.ГГ(например, 25.12.24):")
 
 
-@router.callback_query(F.data == "no_video", EventState.waiting_for_video)
+@router.callback_query(F.data == "no_video", EventState.waiting_for_video, IsAdminOrManager())
 async def process_no_video(callback: CallbackQuery, state: FSMContext):
     """Обработка отсутствия видео"""
     await process_event_final(callback.message, state, None)
     await callback.answer()
 
 
-@router.message(EventState.waiting_for_video)
+@router.message(EventState.waiting_for_video, IsAdminOrManager())
 async def process_event_video(message: Message, state: FSMContext):
     """Обработка ссылки на видео"""
     await process_event_final(message, state, message.text)
@@ -622,13 +620,13 @@ async def process_event_final(message: Message, state: FSMContext, video_url: st
 
 # Замените существующие функции на эти:
 
-@router.callback_query(F.data == "events_list")
+@router.callback_query(F.data == "events_list", IsAdminOrManager())
 async def show_events_list(callback: CallbackQuery):
     """Показ списка мероприятий с пагинацией"""
     await _show_events_page(callback, page=1)
 
 
-@router.callback_query(F.data.startswith("events_page:"))
+@router.callback_query(F.data.startswith("events_page:"), IsAdminOrManager())
 async def view_events_page(callback: CallbackQuery):
     """Просмотр страницы с мероприятиями"""
     page = int(callback.data.split(":")[1])
@@ -700,7 +698,7 @@ async def _show_events_page(callback: CallbackQuery, page: int):
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("event_detail:"))
+@router.callback_query(F.data.startswith("event_detail:"), IsAdminOrManager())
 async def event_detail(callback: CallbackQuery):
     """Детальный просмотр мероприятия"""
     event_id = int(callback.data.split(":")[1])
@@ -744,7 +742,7 @@ async def event_detail(callback: CallbackQuery):
 
 
 # Обработчик удаления мероприятия
-@router.callback_query(F.data.startswith("delete_event:"))
+@router.callback_query(F.data.startswith("delete_event:"), IsAdminOrManager())
 async def delete_event(callback: CallbackQuery):
     """Удаление мероприятия"""
     event_id = int(callback.data.split(":")[1])
@@ -834,7 +832,7 @@ async def _show_events_page_internal(message: Message, page: int):
 
 
 # Обработчик начала редактирования мероприятия
-@router.callback_query(F.data.startswith("edit_event:"))
+@router.callback_query(F.data.startswith("edit_event:"), IsAdminOrManager())
 async def start_edit_event(callback: CallbackQuery, state: FSMContext):
     """Начало редактирования мероприятия"""
     event_id = int(callback.data.split(":")[1])
@@ -859,7 +857,7 @@ async def start_edit_event(callback: CallbackQuery, state: FSMContext):
 
 
 # Обработчик выбора поля для редактирования
-@router.callback_query(F.data.startswith("edit_field:"), EditEventState.waiting_for_edit_choice)
+@router.callback_query(F.data.startswith("edit_field:"), EditEventState.waiting_for_edit_choice, IsAdminOrManager())
 async def select_edit_field(callback: CallbackQuery, state: FSMContext):
     """Обработка выбора поля для редактирования"""
     field = callback.data.split(":")[1]
@@ -897,19 +895,19 @@ async def select_edit_field(callback: CallbackQuery, state: FSMContext):
 
 
 # Обработчики для каждого типа поля
-@router.message(EditEventState.waiting_for_new_title)
+@router.message(EditEventState.waiting_for_new_title, IsAdminOrManager())
 async def process_new_title(message: Message, state: FSMContext):
     """Обработка нового названия"""
     await update_event_field(message, state, "title", message.text)
 
 
-@router.message(EditEventState.waiting_for_new_description)
+@router.message(EditEventState.waiting_for_new_description, IsAdminOrManager())
 async def process_new_description(message: Message, state: FSMContext):
     """Обработка нового описания"""
     await update_event_field(message, state, "description", message.text)
 
 
-@router.message(EditEventState.waiting_for_new_date)
+@router.message(EditEventState.waiting_for_new_date, IsAdminOrManager())
 async def process_new_date(message: Message, state: FSMContext):
     """Обработка новой даты"""
     try:
@@ -920,7 +918,7 @@ async def process_new_date(message: Message, state: FSMContext):
         await message.answer("❌ Неверный формат даты. Пожалуйста, введите дату в формате ДД.ММ.ГГ (например, 25.12.24):")
 
 
-@router.message(EditEventState.waiting_for_new_video)
+@router.message(EditEventState.waiting_for_new_video, IsAdminOrManager())
 async def process_new_video(message: Message, state: FSMContext):
     """Обработка новой ссылки на видео"""
     await update_event_field(message, state, "video_url", message.text)
@@ -955,7 +953,7 @@ async def process_new_video(message: Message, state: FSMContext):
         await message.answer(f"✅ Уведомление о новом мероприятии отправлено {count} пользователям")
 
 
-@router.callback_query(F.data == "remove_video", EditEventState.waiting_for_new_video)
+@router.callback_query(F.data == "remove_video", EditEventState.waiting_for_new_video, IsAdminOrManager())
 async def process_remove_video(callback: CallbackQuery, state: FSMContext):
     """Удаление видео"""
 
@@ -1038,14 +1036,14 @@ async def send_event_detail(message: Message, event_id: int):
     await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 
-@router.callback_query(F.data.startswith("reviews_list:"))
+@router.callback_query(F.data.startswith("reviews_list:"), IsAdminOrManager())
 async def show_reviews_list(callback: CallbackQuery):
     """Показ списка отзывов для мероприятия"""
     event_id = int(callback.data.split(":")[1])
     await _show_reviews_page(callback, event_id, page=1)
 
 
-@router.callback_query(F.data.startswith("reviews_page:"))
+@router.callback_query(F.data.startswith("reviews_page:"), IsAdminOrManager())
 async def show_reviews_page(callback: CallbackQuery):
     """Просмотр страницы с отзывами"""
     data = callback.data.split(":")
@@ -1148,7 +1146,7 @@ async def _show_reviews_page(callback: CallbackQuery, event_id: int, page: int):
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("review_detail:"))
+@router.callback_query(F.data.startswith("review_detail:"), IsAdminOrManager())
 async def show_review_detail(callback: CallbackQuery):
     """Просмотр деталей отзыва"""
     review_id = int(callback.data.split(":")[1])

@@ -89,6 +89,13 @@ class Post(Base):
     flag = Column(Boolean, default=False)
 
 
+class Manager(Base):
+    """Модель для хранения запросов на подписку"""
+    __tablename__ = "manager"
+
+    manager_id = Column(BigInteger, primary_key=True)  # ID пользователя Telegram
+
+
 async def create_tables():
     """Создает таблицы в базе данных"""
     async with engine.begin() as conn:

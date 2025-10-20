@@ -3,7 +3,7 @@ import math
 from sqlalchemy import select, desc
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatMemberUpdated, FSInputFile
 
-from db.models import Event
+from db.models import Event, Manager
 from config import STRINGS_PER_PAGE
 from aiogram import Router, F
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
@@ -25,6 +25,20 @@ class QuestionState(StatesGroup):
 
 class ReviewState(StatesGroup):
     waiting_for_review = State()
+
+
+async def get_all_admins_and_managers():
+    """Возвращает список ID всех администраторов и менеджеров"""
+    admins_and_managers = ADMIN_IDS.copy()  # Начинаем с администраторов
+
+    # Добавляем менеджеров из базы данных
+    async with Session() as session:
+        result = await session.execute(select(Manager))
+        managers = result.scalars().all()
+        for manager in managers:
+            admins_and_managers.append(manager.manager_id)
+
+    return admins_and_managers
 
 
 async def add_user(user_id, username, first_name, last_name):
@@ -115,7 +129,8 @@ async def receive_question(message: Message, state: FSMContext):
     await message.answer("✅ Ваш вопрос принят. Мы ответим вам в ближайшее время.")
 
     # Пересылаем сообщение с вопросом администраторам
-    for admin_id in ADMIN_IDS:
+    admins_and_managers = await get_all_admins_and_managers()
+    for admin_id in admins_and_managers:
         try:
             # Пересылаем оригинальное сообщение
             await bot.send_message(
@@ -314,7 +329,8 @@ async def process_review(message: Message, state: FSMContext):
             user_info = user.username if user.username else f"ID{user.user_id}"
 
             # Отправляем уведомление администраторам
-            for admin_id in ADMIN_IDS:
+            admins_and_managers = await get_all_admins_and_managers()
+            for admin_id in admins_and_managers:
                 try:
                     # Отправляем информацию об отзыве
                     await bot.send_message(

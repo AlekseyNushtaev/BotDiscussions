@@ -5,6 +5,8 @@ import logging
 from aiogram import Dispatcher
 
 import handlers_admin
+import handlers_admin_excel
+import handlers_admin_managers
 import handlers_admin_send
 from bot import bot
 from db.models import create_tables
@@ -51,9 +53,11 @@ async def main() -> None:
         dp: Dispatcher = Dispatcher()
 
         # Регистрация роутеров
-        dp.include_router(handlers_user.router)
         dp.include_router(handlers_admin.router)
+        dp.include_router(handlers_admin_excel.router)
+        dp.include_router(handlers_admin_managers.router)
         dp.include_router(handlers_admin_send.router)
+        dp.include_router(handlers_user.router)
         logger.info("Роутеры успешно зарегистрированы")
         current_hour = datetime.datetime.now().hour
         loop = asyncio.get_event_loop()

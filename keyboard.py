@@ -13,12 +13,24 @@ def get_main_keyboard() -> ReplyKeyboardMarkup:
 
 
 admin_keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Вопросы", callback_data="admin_questions")],
-            [InlineKeyboardButton(text="Мероприятия", callback_data="admin_events")],
-            [InlineKeyboardButton(text="Рассылка", callback_data="send")]
-        ]
-    )
+    inline_keyboard=[
+        [InlineKeyboardButton(text="❓ Вопросы", callback_data="admin_questions")],
+        [InlineKeyboardButton(text="📅 Мероприятия", callback_data="admin_events")],
+        [InlineKeyboardButton(text="👥 Менеджеры", callback_data="admin_managers")],
+        [InlineKeyboardButton(text="📢 Рассылка", callback_data="send")],
+        [InlineKeyboardButton(text="📊 Выгрузить статистику", callback_data="excel")]
+    ]
+)
+
+# Клавиатура для менеджеров (без управления менеджерами)
+manager_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="❓ Вопросы", callback_data="admin_questions")],
+        [InlineKeyboardButton(text="📅 Мероприятия", callback_data="admin_events")],
+        [InlineKeyboardButton(text="📢 Рассылка", callback_data="send")],
+        [InlineKeyboardButton(text="📊 Выгрузить статистику", callback_data="excel")]
+    ]
+)
 
 
 def create_kb(width: int,
