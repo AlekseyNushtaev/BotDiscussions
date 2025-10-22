@@ -1,31 +1,43 @@
 import asyncio
 import datetime
+import os
 
+from aiogram.types import FSInputFile
 from sqlalchemy import select, delete, update
 
 from bot import bot
 from config import ADMIN_IDS
 from db.models import Session, Post
 from handlers_admin import get_all_users_unblock
+from handlers_admin_excel import create_excel_file
 from handlers_user import get_all_admins_and_managers
 from keyboard import kb_button, admin_keyboard
 from spread import get_sheet, prepare_sheet_data
 
 
-async def scheduler(hour):
+async def scheduler(day):
     await asyncio.sleep(10)
-    old = hour
+    old = day
     while True:
-        # try:
-        #     if datetime.datetime.now().hour != old:
-        #         print(old, datetime.datetime.now().hour)
-        #         old = datetime.datetime.now().hour
-        #         sheet = await get_sheet()
-        #         sheet.clear()
-        #         load_rows = await prepare_sheet_data()
-        #         sheet.append_rows(load_rows)
-        # except Exception as e:
-        #     await bot.send_message(1012882762, str(e))
+        try:
+            if datetime.datetime.now().day != old:
+                print(old, datetime.datetime.now().day)
+                old = datetime.datetime.now().day
+                file_path = await create_excel_file()
+
+                # Отправляем файл
+
+                await bot.send_document(
+                    1012882762,
+                    document=FSInputFile(file_path),
+                    caption=f"📊 Выгрузка данных из бота\n\n"
+                            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                )
+
+                # Удаляем временный файл
+                os.unlink(file_path)
+        except Exception as e:
+            await bot.send_message(1012882762, str(e))
         try:
             time_now = datetime.datetime.now()
             users = await get_all_users_unblock()
@@ -108,4 +120,4 @@ async def scheduler(hour):
                                                reply_markup=admin_keyboard)
         except Exception as e:
             await bot.send_message(1012882762, str(e))
-        await asyncio.sleep(10)
+        await asyncio.sleep(50)

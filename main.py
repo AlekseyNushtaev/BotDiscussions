@@ -59,9 +59,9 @@ async def main() -> None:
         dp.include_router(handlers_admin_send.router)
         dp.include_router(handlers_user.router)
         logger.info("Роутеры успешно зарегистрированы")
-        current_hour = datetime.datetime.now().hour
+        current_day = datetime.datetime.now().day
         loop = asyncio.get_event_loop()
-        loop.create_task(scheduler(current_hour - 1))
+        loop.create_task(scheduler(current_day - 1))
 
         # Удаление вебхука для очистки ожидающих обновлений
         await bot.delete_webhook(drop_pending_updates=True)
