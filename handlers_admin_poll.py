@@ -81,7 +81,7 @@ async def process_more_answers(callback: CallbackQuery, state: FSMContext):
         answers.extend(additional_answers)
 
         # Формируем сообщение для предварительного просмотра
-        text = f"📊 Внимание опрос!!!\n\n{poll_text}\n\nВарианты ответов:\n"
+        text = f"📊 Опрос\n\n{poll_text}\n\nВарианты ответов:\n"
         for i, answer in enumerate(answers, 1):
             text += f"{i}. {answer}\n"
 
@@ -191,7 +191,7 @@ async def send_poll_to_all(poll_id: int):
         voted_users = [user_id for (user_id,) in voted_users_result.all()]
 
     # Формируем текст опроса
-    text = f"📊 Внимание опрос!!!\n\n{poll.text_poll}\n\n"
+    text = f"📊 Опрос\n\n{poll.text_poll}\n\n"
 
     # Проверяем, есть ли уже голоса
     total_votes = sum(answer.value for answer in answers)
@@ -294,7 +294,7 @@ async def process_poll_vote(callback: CallbackQuery):
             answers = poll.answers
 
             # Формируем обновленный текст опроса
-            text = f"📊 Внимание опрос!!!\n\n{poll.text_poll}\n\n"
+            text = f"📊 Опрос\n\n{poll.text_poll}\n\n"
             total_votes = sum(answer.value for answer in answers)
 
             text += "Текущие результаты:\n"
