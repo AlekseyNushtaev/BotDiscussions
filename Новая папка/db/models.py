@@ -96,65 +96,6 @@ class Manager(Base):
     manager_id = Column(BigInteger, primary_key=True)  # ID пользователя Telegram
 
 
-class Poll(Base):
-    """Модель для хранения опросов"""
-    __tablename__ = "poll"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tg_id = Column(BigInteger, nullable=False)  # ID администратора/менеджера, создавшего опрос
-    text_poll = Column(Text, nullable=False)  # Текст опроса
-    time_stamp = Column(DateTime, nullable=False)  # Время создания
-
-    # Связь с вариантами ответов
-    answers = relationship("PollAnswer", back_populates="poll", cascade="all, delete-orphan")
-    # Связь с сообщениями опросов
-    messages = relationship("PollMessage", back_populates="poll", cascade="all, delete-orphan")
-    # Связь с голосами
-    votes = relationship("PollVote", back_populates="poll", cascade="all, delete-orphan")
-
-
-class PollAnswer(Base):
-    """Модель для хранения вариантов ответов опроса"""
-    __tablename__ = "poll_answer"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    poll_id = Column(Integer, ForeignKey('poll.id', ondelete="CASCADE"), nullable=False)
-    text_answer = Column(Text, nullable=False)  # Текст варианта ответа
-    value = Column(Integer, default=0)  # Количество голосов
-
-    # Связь с опросом
-    poll = relationship("Poll", back_populates="answers")
-    # Связь с голосами
-    votes = relationship("PollVote", back_populates="answer", cascade="all, delete-orphan")
-
-
-class PollVote(Base):
-    """Модель для отслеживания голосов пользователей"""
-    __tablename__ = "poll_vote"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    poll_id = Column(Integer, ForeignKey('poll.id', ondelete="CASCADE"), nullable=False)
-    user_id = Column(BigInteger, nullable=False)  # ID пользователя, который проголосовал
-    answer_id = Column(Integer, ForeignKey('poll_answer.id', ondelete="CASCADE"), nullable=False)
-
-    # Связи
-    poll = relationship("Poll", back_populates="votes")
-    answer = relationship("PollAnswer", back_populates="votes")
-
-
-class PollMessage(Base):
-    """Модель для хранения сообщений опросов, которые нужно обновлять"""
-    __tablename__ = "poll_message"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    poll_id = Column(Integer, ForeignKey('poll.id', ondelete="CASCADE"), nullable=False)
-    chat_id = Column(BigInteger, nullable=False)  # ID чата, где было отправлено сообщение
-    message_id = Column(BigInteger, nullable=False)  # ID сообщения в чате
-
-    # Связь с опросом
-    poll = relationship("Poll", back_populates="messages")
-
-
 async def create_tables():
     """Создает таблицы в базе данных"""
     async with engine.begin() as conn:

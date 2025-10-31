@@ -8,7 +8,7 @@ from sqlalchemy import select
 import tempfile
 import os
 
-from db.models import Session, Question, User, Event, Review, Post, Poll
+from db.models import Session, Question, User, Event, Review, Post
 from filters import IsAdminOrManager
 from keyboard import admin_keyboard, manager_keyboard
 from config import ADMIN_IDS
@@ -30,7 +30,6 @@ async def create_excel_file():
     await create_reviews_sheet(wb)
     await create_posts_sheet(wb)
     await create_users_sheet(wb)
-    await create_polls_sheet(wb)
 
     # Сохраняем во временный файл
     with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
@@ -233,64 +232,6 @@ async def create_users_sheet(wb: openpyxl.Workbook):
         ws.cell(row=row, column=3, value=user.first_name or '')
         ws.cell(row=row, column=4, value=user.last_name or '')
         ws.cell(row=row, column=5, value='Да' if user.user_is_block else 'Нет')
-
-    # Автоподбор ширины колонок
-    for column in ws.columns:
-        max_length = 0
-        column_letter = column[0].column_letter
-        for cell in column:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2)
-        ws.column_dimensions[column_letter].width = adjusted_width
-
-
-async def create_polls_sheet(wb: openpyxl.Workbook):
-    """Создает лист с опросами"""
-    ws: Worksheet = wb.create_sheet("Опросы")
-
-    # Заголовки
-    headers = ['№', 'Текст опроса', 'Дата создания']
-
-    # Получаем все опросы с вариантами ответов
-    async with Session() as session:
-        from sqlalchemy.orm import selectinload
-
-        result = await session.execute(
-            select(Poll)
-            .options(selectinload(Poll.answers))
-            .order_by(Poll.time_stamp.desc())
-        )
-        polls = result.scalars().all()
-
-    # Определяем максимальное количество вариантов ответов
-    max_answers = 0
-    for poll in polls:
-        if len(poll.answers) > max_answers:
-            max_answers = len(poll.answers)
-
-    # Добавляем заголовки для вариантов ответов
-    for i in range(1, max_answers + 1):
-        headers.extend([f'Вариант {i}', f'Голосов {i}'])
-
-    # Записываем заголовки
-    for col, header in enumerate(headers, 1):
-        ws.cell(row=1, column=col, value=header).font = Font(bold=True)
-
-    # Записываем данные
-    for row, poll in enumerate(polls, 2):
-        ws.cell(row=row, column=1, value=(int(row) - 1))  # Нумерация
-        ws.cell(row=row, column=2, value=poll.text_poll)
-        ws.cell(row=row, column=3, value=poll.time_stamp.strftime('%Y-%m-%d %H:%M:%S') if poll.time_stamp else '')
-
-        # Записываем варианты ответов
-        for idx, answer in enumerate(poll.answers):
-            col_offset = 4 + (idx * 2)  # Смещение для пар столбцов (вариант + голоса)
-            ws.cell(row=row, column=col_offset, value=answer.text_answer)
-            ws.cell(row=row, column=col_offset + 1, value=answer.value)
 
     # Автоподбор ширины колонок
     for column in ws.columns:

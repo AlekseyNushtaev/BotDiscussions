@@ -1,6 +1,7 @@
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+
 def get_main_keyboard() -> ReplyKeyboardMarkup:
     """
     Создает клавиатуру для администратора с основными командами
@@ -17,20 +18,20 @@ admin_keyboard = InlineKeyboardMarkup(
         [InlineKeyboardButton(text="📅 Мероприятия", callback_data="admin_events")],
         [InlineKeyboardButton(text="👥 Менеджеры", callback_data="admin_managers")],
         [InlineKeyboardButton(text="📢 Рассылка", callback_data="send")],
-        [InlineKeyboardButton(text="📥 Выгрузить статистику", callback_data="excel")],
-        [InlineKeyboardButton(text="📊 Создать опрос", callback_data="create_poll")]  # Новая кнопка
+        [InlineKeyboardButton(text="📊 Выгрузить статистику", callback_data="excel")]
     ]
 )
 
+# Клавиатура для менеджеров (без управления менеджерами)
 manager_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="❓ Вопросы", callback_data="admin_questions")],
         [InlineKeyboardButton(text="📅 Мероприятия", callback_data="admin_events")],
         [InlineKeyboardButton(text="📢 Рассылка", callback_data="send")],
-        [InlineKeyboardButton(text="📥 Выгрузить статистику", callback_data="excel")],
-        [InlineKeyboardButton(text="📊 Создать опрос", callback_data="create_poll")]  # Новая кнопка
+        [InlineKeyboardButton(text="📊 Выгрузить статистику", callback_data="excel")]
     ]
 )
+
 
 def create_kb(width: int,
                      *args: str,
